@@ -17,18 +17,12 @@ const config: ForgeConfig = {
     icon: './assets/icon',
     appBundleId: 'com.tomcerdeira.linear-screenshot',
     appCategoryType: 'public.app-category.productivity',
-    osxSign: {},
   },
   rebuildConfig: {},
   makers: [
     new MakerZIP({}, ['darwin']),
-    new MakerDMG({
-      name: 'Linear Screenshot',
-      icon: './assets/icon.icns',
-    }),
-    new MakerSquirrel({
-      name: 'linear-screenshot',
-    }),
+    new MakerDMG({ name: 'Linear Screenshot' }),
+    new MakerSquirrel({ name: 'linear-screenshot' }),
     new MakerDeb({
       options: {
         name: 'linear-screenshot',
