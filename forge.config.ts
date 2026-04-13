@@ -12,7 +12,7 @@ import { PublisherGithub } from '@electron-forge/publisher-github';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    name: 'Linear Screenshot',
+    name: 'LinearScreenshot',
     executableName: 'linear-screenshot',
     icon: './assets/icon',
     appBundleId: 'com.tomcerdeira.linear-screenshot',
@@ -21,7 +21,7 @@ const config: ForgeConfig = {
   rebuildConfig: {},
   makers: [
     new MakerZIP({}, ['darwin']),
-    new MakerDMG({ name: 'Linear Screenshot' }),
+    new MakerDMG({ name: 'LinearScreenshot' }),
     new MakerSquirrel({ name: 'linear-screenshot' }),
     new MakerDeb({
       options: {
@@ -29,6 +29,7 @@ const config: ForgeConfig = {
         productName: 'Linear Screenshot',
         icon: './assets/icon.png',
         categories: ['Utility'],
+        bin: 'linear-screenshot',
       },
     }),
     new MakerRpm({
@@ -37,6 +38,7 @@ const config: ForgeConfig = {
         productName: 'Linear Screenshot',
         icon: './assets/icon.png',
         categories: ['Utility'],
+        bin: 'linear-screenshot',
       },
     }),
   ],
