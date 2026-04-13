@@ -31,7 +31,13 @@ Head to the [Releases](https://github.com/tomcerdeira/linear-screenshots-helper/
 3. Paste your Linear API key (generate one at [linear.app/settings/api](https://linear.app/settings/api))
 4. Press `Cmd+Shift+L` to capture your first screenshot
 
-> **macOS:** The app will ask for Screen Recording permission on first use. Grant it in System Settings > Privacy & Security > Screen Recording.
+> **macOS Gatekeeper:** Since the app is not notarized with an Apple Developer certificate, macOS will show an "is damaged" or "unidentified developer" warning. To fix this, run the following after extracting:
+>
+> ```bash
+> xattr -cr /path/to/LinearScreenshot.app
+> ```
+>
+> Then open it normally. You'll also need to grant **Screen Recording** permission on first use (System Settings > Privacy & Security > Screen Recording).
 
 ## Usage
 
