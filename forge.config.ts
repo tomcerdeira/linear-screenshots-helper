@@ -1,24 +1,60 @@
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
+import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerDeb } from '@electron-forge/maker-deb';
 import { MakerRpm } from '@electron-forge/maker-rpm';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
+import { PublisherGithub } from '@electron-forge/publisher-github';
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     name: 'Linear Screenshot',
+    executableName: 'linear-screenshot',
     icon: './assets/icon',
+    appBundleId: 'com.tomcerdeira.linear-screenshot',
+    appCategoryType: 'public.app-category.productivity',
+    osxSign: {},
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({}),
     new MakerZIP({}, ['darwin']),
-    new MakerRpm({}),
-    new MakerDeb({}),
+    new MakerDMG({
+      name: 'Linear Screenshot',
+      icon: './assets/icon.icns',
+    }),
+    new MakerSquirrel({
+      name: 'linear-screenshot',
+    }),
+    new MakerDeb({
+      options: {
+        name: 'linear-screenshot',
+        productName: 'Linear Screenshot',
+        icon: './assets/icon.png',
+        categories: ['Utility'],
+      },
+    }),
+    new MakerRpm({
+      options: {
+        name: 'linear-screenshot',
+        productName: 'Linear Screenshot',
+        icon: './assets/icon.png',
+        categories: ['Utility'],
+      },
+    }),
+  ],
+  publishers: [
+    new PublisherGithub({
+      repository: {
+        owner: 'tomcerdeira',
+        name: 'linear-screenshots-helper',
+      },
+      prerelease: false,
+      draft: true,
+    }),
   ],
   plugins: [
     new VitePlugin({
