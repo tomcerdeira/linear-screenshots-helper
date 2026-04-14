@@ -62,6 +62,10 @@ export function getHotkey(): string {
   return store.get('hotkey');
 }
 
+export function setHotkey(hotkey: string): void {
+  store.set('hotkey', hotkey);
+}
+
 export function getConfig(): AppConfig {
   return {
     linearApiKey: getApiKey(),

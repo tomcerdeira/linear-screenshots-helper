@@ -1,7 +1,7 @@
 import { ipcMain, BrowserWindow, shell, screen } from 'electron';
 import { IPC } from '../shared/ipc-channels';
 import type { IpcResult, LinearIssueResult, CreateIssueInput, AddCommentInput, ScreenshotData, RecentSelections } from '../shared/types';
-import { getApiKey, setApiKey, getEnabled, setEnabled, getRecentSelections, saveLastTeam, saveLastProject, saveRecentTicket } from '../services/store';
+import { getApiKey, setApiKey, getEnabled, setEnabled, getHotkey, setHotkey, getRecentSelections, saveLastTeam, saveLastProject, saveRecentTicket } from '../services/store';
 import { resetClient } from '../services/linear-client';
 import { getTeams, getProjects, getWorkflowStates, getLabels, getMembers, searchIssues, getRecentIssues, createIssue, addCommentWithScreenshot } from '../services/linear-issues';
 import { buildToastHtml } from './templates/toast';
@@ -12,7 +12,10 @@ export function setCurrentScreenshot(data: ScreenshotData | null): void {
   currentScreenshot = data;
 }
 
-export function registerIpcHandlers(): void {
+let onHotkeyChanged: ((hotkey: string) => void) | null = null;
+
+export function registerIpcHandlers(callbacks?: { onHotkeyChanged?: (hotkey: string) => void }): void {
+  onHotkeyChanged = callbacks?.onHotkeyChanged ?? null;
   ipcMain.handle(IPC.GET_SCREENSHOT, (): IpcResult<ScreenshotData> => {
     if (!currentScreenshot) {
       return { success: false, error: 'No screenshot available' };
@@ -51,6 +54,16 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC.SET_ENABLED, (_e, enabled: boolean): IpcResult => {
     setEnabled(enabled);
+    return { success: true };
+  });
+
+  ipcMain.handle(IPC.GET_HOTKEY, (): IpcResult<string> => {
+    return { success: true, data: getHotkey() };
+  });
+
+  ipcMain.handle(IPC.SET_HOTKEY, (_e, hotkey: string): IpcResult => {
+    setHotkey(hotkey);
+    if (onHotkeyChanged) onHotkeyChanged(hotkey);
     return { success: true };
   });
 

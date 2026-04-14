@@ -15,6 +15,8 @@ interface ElectronApi {
   setApiKey(key: string): Promise<IpcResult>;
   getEnabled(): Promise<IpcResult<boolean>>;
   setEnabled(enabled: boolean): Promise<IpcResult>;
+  getHotkey(): Promise<IpcResult<string>>;
+  setHotkey(hotkey: string): Promise<IpcResult>;
   openSettings(): Promise<void>;
   closeWindow(): Promise<IpcResult>;
   getRecentSelections(): Promise<IpcResult<RecentSelections>>;

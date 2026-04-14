@@ -101,7 +101,7 @@ function openSettings(): void {
 }
 
 app.on('ready', () => {
-  registerIpcHandlers();
+  registerIpcHandlers({ onHotkeyChanged: registerHotkey });
   createTray(trayCallbacks);
   if (getEnabled()) registerHotkey();
   prefetchData();

@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld('api', {
   setApiKey: (key: string) => ipcRenderer.invoke(IPC.SET_API_KEY, key),
   getEnabled: () => ipcRenderer.invoke(IPC.GET_ENABLED),
   setEnabled: (enabled: boolean) => ipcRenderer.invoke(IPC.SET_ENABLED, enabled),
+  getHotkey: () => ipcRenderer.invoke(IPC.GET_HOTKEY),
+  setHotkey: (hotkey: string) => ipcRenderer.invoke(IPC.SET_HOTKEY, hotkey),
   openSettings: () => ipcRenderer.invoke(IPC.OPEN_SETTINGS),
   closeWindow: () => ipcRenderer.invoke(IPC.CLOSE_WINDOW),
   getRecentSelections: () => ipcRenderer.invoke(IPC.GET_RECENT_SELECTIONS),

@@ -19,6 +19,8 @@ export const IPC = {
   SAVE_LAST_TEAM: 'store:saveLastTeam',
   SAVE_LAST_PROJECT: 'store:saveLastProject',
   SAVE_RECENT_TICKET: 'store:saveRecentTicket',
+  GET_HOTKEY: 'store:getHotkey',
+  SET_HOTKEY: 'store:setHotkey',
   SHOW_TOAST: 'app:showToast',
   CREATE_ISSUE_BG: 'linear:createIssueBg',
   ADD_COMMENT_BG: 'linear:addCommentBg',
