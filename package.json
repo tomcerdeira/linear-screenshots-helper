@@ -1,7 +1,7 @@
 {
   "name": "linear-screenshots-helper",
   "productName": "Linear Screenshot",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Capture screenshots and create Linear tickets instantly from your menu bar",
   "main": ".vite/build/index.js",
   "scripts": {
@@ -13,7 +13,13 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "keywords": ["linear", "screenshot", "electron", "menu-bar", "productivity"],
+  "keywords": [
+    "linear",
+    "screenshot",
+    "electron",
+    "menu-bar",
+    "productivity"
+  ],
   "homepage": "https://github.com/tomcerdeira/linear-screenshots-helper",
   "repository": {
     "type": "git",
