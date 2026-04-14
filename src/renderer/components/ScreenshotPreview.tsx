@@ -6,11 +6,11 @@ interface ScreenshotPreviewProps {
 
 export function ScreenshotPreview({ dataUrl }: ScreenshotPreviewProps) {
   return (
-    <div className="rounded-lg overflow-hidden border border-[#333352] bg-[#0d0d15]">
+    <div className="rounded-md overflow-hidden border border-border bg-[#18181b]">
       <img
         src={dataUrl}
         alt="Screenshot"
-        className="w-full h-auto max-h-36 object-contain"
+        className="w-full h-auto max-h-40 object-contain"
       />
     </div>
   );

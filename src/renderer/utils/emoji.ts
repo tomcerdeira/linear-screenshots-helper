@@ -13,6 +13,7 @@ const LINEAR_ICON_MAP: Record<string, string> = {
   subscribe: 'inbox_tray',
 };
 
+// eslint-disable-next-line no-misleading-character-class
 const EMOJI_REGEX = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F000}-\u{1FFFF}\u{200D}\u{20E3}\u{E0020}-\u{E007F}]/u;
 
 function resolveShortcode(code: string): string | null {

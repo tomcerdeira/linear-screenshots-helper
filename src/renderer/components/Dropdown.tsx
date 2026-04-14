@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { ChevronDown, Search, Check } from 'lucide-react';
 import { shortcodeToEmoji } from '../utils/emoji';
 
 export interface DropdownOption {
@@ -7,6 +8,9 @@ export interface DropdownOption {
   readonly label: string;
   readonly icon?: string | null;
   readonly secondary?: string;
+  readonly avatarUrl?: string | null;
+  readonly renderIcon?: React.ReactNode;
+  readonly group?: string;
 }
 
 interface DropdownProps {
@@ -16,13 +20,15 @@ interface DropdownProps {
   readonly placeholder?: string;
   readonly disabled?: boolean;
   readonly searchable?: boolean;
+  readonly searchPlaceholder?: string;
+  readonly renderTrigger?: (selected: DropdownOption | undefined, isOpen: boolean) => React.ReactNode;
+  readonly panelMinWidth?: number;
 }
 
 interface PanelPosition {
-  readonly top: number;
+  readonly bottom: number;
   readonly left: number;
   readonly width: number;
-  readonly direction: 'down' | 'up';
 }
 
 function EmojiIcon({ icon }: { readonly icon: string | null | undefined }) {
@@ -35,6 +41,41 @@ function EmojiIcon({ icon }: { readonly icon: string | null | undefined }) {
   );
 }
 
+function Avatar({ url, name }: { readonly url?: string | null; readonly name: string }) {
+  const initials = name
+    .split(' ')
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt={name}
+        className="shrink-0 w-[20px] h-[20px] rounded-full object-cover"
+      />
+    );
+  }
+
+  return (
+    <span className="shrink-0 w-[20px] h-[20px] rounded-full bg-[#3b3b40] flex items-center justify-center text-[9px] font-medium text-[#9b9ba4]">
+      {initials}
+    </span>
+  );
+}
+
+function OptionIcon({ option }: { readonly option: DropdownOption }) {
+  if (option.renderIcon) {
+    return <span className="shrink-0 flex items-center justify-center w-[20px] h-[20px]">{option.renderIcon}</span>;
+  }
+  if (option.avatarUrl !== undefined) {
+    return <Avatar url={option.avatarUrl} name={option.label} />;
+  }
+  return <EmojiIcon icon={option.icon} />;
+}
+
 export function Dropdown({
   options,
   value,
@@ -42,6 +83,9 @@ export function Dropdown({
   placeholder = 'Select...',
   disabled = false,
   searchable = false,
+  searchPlaceholder = 'Search...',
+  renderTrigger,
+  panelMinWidth,
 }: DropdownProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -52,6 +96,10 @@ export function Dropdown({
   const listRef = useRef<HTMLUListElement>(null);
   const [position, setPosition] = useState<PanelPosition | null>(null);
 
+  // Refs for document-level keydown handler (avoids stale closures)
+  const highlightIndexRef = useRef(highlightIndex);
+  highlightIndexRef.current = highlightIndex;
+
   const selected = options.find((o) => o.value === value);
 
   const filtered = search
@@ -61,24 +109,22 @@ export function Dropdown({
       )
     : options;
 
+  const filteredRef = useRef(filtered);
+  filteredRef.current = filtered;
+
   // Compute position relative to the trigger button
   const updatePosition = useCallback(() => {
     if (!buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
-    const panelMaxH = 260;
-    const spaceBelow = window.innerHeight - rect.bottom - 8;
-    const spaceAbove = rect.top - 8;
-    const direction = spaceBelow >= panelMaxH || spaceBelow >= spaceAbove ? 'down' : 'up';
 
     setPosition({
-      top: direction === 'down' ? rect.bottom + 4 : rect.top - 4,
+      bottom: window.innerHeight - rect.top + 4,
       left: rect.left,
       width: rect.width,
-      direction,
     });
   }, []);
 
-  // Close on outside click or Escape
+  // Close on outside click; handle Escape and arrow/enter navigation at document level
   useEffect(() => {
     if (!open) return;
 
@@ -91,17 +137,39 @@ export function Dropdown({
 
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
         setOpen(false);
         setSearch('');
         buttonRef.current?.focus();
+        return;
+      }
+
+      // Handle arrow/enter navigation at the document level
+      // so it works regardless of what element has focus
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        e.stopPropagation();
+        setHighlightIndex((prev) => (prev < filteredRef.current.length - 1 ? prev + 1 : 0));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        e.stopPropagation();
+        setHighlightIndex((prev) => (prev > 0 ? prev - 1 : filteredRef.current.length - 1));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        const idx = highlightIndexRef.current;
+        if (idx >= 0 && idx < filteredRef.current.length) {
+          handleSelect(filteredRef.current[idx].value);
+        }
       }
     }
 
     document.addEventListener('mousedown', onMouseDown);
-    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keydown', onKeyDown, true);
     return () => {
       document.removeEventListener('mousedown', onMouseDown);
-      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('keydown', onKeyDown, true);
     };
   }, [open]);
 
@@ -112,10 +180,16 @@ export function Dropdown({
       return;
     }
     updatePosition();
-    // Focus the search input or the list after portal mounts
+
+    // Pre-highlight the currently selected item
+    const selectedIdx = filtered.findIndex((o) => o.value === value);
+    if (selectedIdx >= 0) setHighlightIndex(selectedIdx);
+
     requestAnimationFrame(() => {
       if (searchable && searchRef.current) {
         searchRef.current.focus();
+      } else if (panelRef.current) {
+        panelRef.current.focus();
       }
     });
   }, [open, searchable, updatePosition]);
@@ -139,38 +213,36 @@ export function Dropdown({
     buttonRef.current?.focus();
   }
 
-  function handleKeyNav(e: React.KeyboardEvent) {
-    if (!open) {
-      if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        setOpen(true);
-      }
-      return;
-    }
-
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setHighlightIndex((prev) => (prev < filtered.length - 1 ? prev + 1 : 0));
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setHighlightIndex((prev) => (prev > 0 ? prev - 1 : filtered.length - 1));
-        break;
-      case 'Enter':
-        e.preventDefault();
-        if (highlightIndex >= 0 && highlightIndex < filtered.length) {
-          handleSelect(filtered[highlightIndex].value);
-        }
-        break;
-      case 'Escape':
-        e.preventDefault();
-        setOpen(false);
-        setSearch('');
-        buttonRef.current?.focus();
-        break;
+  function handleButtonKeyDown(e: React.KeyboardEvent) {
+    if (!open && (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      setOpen(true);
     }
   }
+
+  const defaultTrigger = (
+    <span className={[
+      'w-full flex items-center justify-between gap-2 px-3 py-[7px] rounded-md text-sm text-left transition-all duration-100',
+      'bg-[#2c2c30] border',
+      open
+        ? 'border-[#5e6ad2]/70 ring-1 ring-[#5e6ad2]/30'
+        : 'border-[#3b3b40] hover:border-[#4a4a52]',
+      disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer',
+    ].join(' ')}>
+      {selected ? (
+        <span className="flex items-center gap-2 text-[#e2e2ea] truncate min-w-0">
+          <EmojiIcon icon={selected.icon} />
+          <span className="truncate">{selected.label}</span>
+          {selected.secondary && (
+            <span className="text-[#6f6f78] text-xs shrink-0">{selected.secondary}</span>
+          )}
+        </span>
+      ) : (
+        <span className="text-[#6f6f78]">{disabled ? 'Loading...' : placeholder}</span>
+      )}
+      <ChevronDown className={`w-3.5 h-3.5 text-[#6f6f78] shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
+    </span>
+  );
 
   return (
     <>
@@ -183,73 +255,39 @@ export function Dropdown({
             if (open) setSearch('');
           }
         }}
-        onKeyDown={handleKeyNav}
+        onKeyDown={handleButtonKeyDown}
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className={[
-          'w-full flex items-center justify-between gap-2 px-3 py-[7px] rounded-[5px] text-sm text-left transition-all duration-100',
-          'bg-[#1d1d30] border',
-          open
-            ? 'border-[#5e6ad2]/70 ring-1 ring-[#5e6ad2]/30'
-            : 'border-[#2e2e48] hover:border-[#3e3e5a]',
-          disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer',
-        ].join(' ')}
+        className={renderTrigger ? 'inline-flex' : 'w-full'}
       >
-        {selected ? (
-          <span className="flex items-center gap-2 text-[#e2e2ea] truncate min-w-0">
-            <EmojiIcon icon={selected.icon} />
-            <span className="truncate">{selected.label}</span>
-            {selected.secondary && (
-              <span className="text-[#5a5e7a] text-xs shrink-0">{selected.secondary}</span>
-            )}
-          </span>
-        ) : (
-          <span className="text-[#5a5e7a]">{disabled ? 'Loading...' : placeholder}</span>
-        )}
-        <svg
-          className={[
-            'w-3.5 h-3.5 text-[#5a5e7a] shrink-0 transition-transform duration-150',
-            open ? 'rotate-180' : '',
-          ].join(' ')}
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={2.5}
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-        </svg>
+        {renderTrigger ? renderTrigger(selected, open) : defaultTrigger}
       </button>
 
       {open && position && createPortal(
         <div
           ref={panelRef}
-          onKeyDown={handleKeyNav}
+          tabIndex={-1}
           style={{
             position: 'fixed',
+            bottom: position.bottom,
             left: position.left,
-            width: position.width,
+            width: Math.max(position.width, panelMinWidth ?? 0),
             zIndex: 9999,
-            ...(position.direction === 'down'
-              ? { top: position.top }
-              : { bottom: window.innerHeight - position.top }),
           }}
-          className="rounded-[6px] bg-[#1a1a2e] border border-[#2e2e48] shadow-2xl shadow-black/60 overflow-hidden animate-in"
+          className="rounded-lg bg-[#232326] border border-[#3b3b40] shadow-2xl shadow-black/50 overflow-hidden animate-in"
         >
           {searchable && (
-            <div className="p-1.5 border-b border-[#2a2a42]">
-              <div className="flex items-center gap-2 px-2 py-1 rounded-[4px] bg-[#232340]">
-                <svg className="w-3.5 h-3.5 text-[#5a5e7a] shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                </svg>
+            <div className="px-2 pt-2 pb-1.5">
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-[#2c2c30] border border-[#3b3b40]">
+                <Search className="w-3.5 h-3.5 text-[#6f6f78] shrink-0" />
                 <input
                   ref={searchRef}
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  onKeyDown={handleKeyNav}
-                  placeholder="Search..."
-                  className="flex-1 bg-transparent border-none text-[13px] text-[#e2e2ea] placeholder-[#5a5e7a] focus:outline-none p-0 m-0 ring-0 focus:ring-0"
+                  placeholder={searchPlaceholder}
+                  className="flex-1 bg-transparent border-none text-[13px] text-[#e2e2ea] placeholder-[#6f6f78] focus:outline-none p-0 m-0 ring-0 focus:ring-0"
                 />
               </div>
             </div>
@@ -258,45 +296,51 @@ export function Dropdown({
           <ul
             ref={listRef}
             role="listbox"
-            className="max-h-[220px] overflow-y-auto py-0.5"
+            className="max-h-[240px] overflow-y-auto py-1 px-1"
           >
             {filtered.length === 0 && (
-              <li className="px-3 py-5 text-[13px] text-[#5a5e7a] text-center">
+              <li className="px-2 py-4 text-[13px] text-[#6f6f78] text-center">
                 No results found
               </li>
             )}
             {filtered.map((option, i) => {
               const isSelected = option.value === value;
               const isHighlighted = i === highlightIndex;
+              const prevGroup = i > 0 ? filtered[i - 1].group : undefined;
+              const showGroup = option.group && option.group !== prevGroup;
+
               return (
-                <li key={option.value} data-option>
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={isSelected}
-                    onClick={() => handleSelect(option.value)}
-                    onMouseEnter={() => setHighlightIndex(i)}
-                    className={[
-                      'w-full flex items-center gap-2 px-3 py-[6px] text-[13px] text-left transition-colors duration-75',
-                      isHighlighted
-                        ? 'bg-[#5e6ad2]/12 text-[#e2e2ea]'
-                        : isSelected
-                          ? 'text-[#e2e2ea]'
-                          : 'text-[#a0a3bd] hover:bg-[#232340]',
-                    ].join(' ')}
-                  >
-                    <EmojiIcon icon={option.icon} />
-                    <span className="truncate flex-1">{option.label}</span>
-                    {option.secondary && (
-                      <span className="text-[#4a4d64] text-xs shrink-0">{option.secondary}</span>
-                    )}
-                    {isSelected && (
-                      <svg className="w-3.5 h-3.5 text-[#5e6ad2] shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                      </svg>
-                    )}
-                  </button>
-                </li>
+                <React.Fragment key={option.value}>
+                  {showGroup && (
+                    <li className="px-2.5 pt-2 pb-1 text-[11px] text-[#6f6f78] font-medium">
+                      {option.group}
+                    </li>
+                  )}
+                  <li data-option>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      onClick={() => handleSelect(option.value)}
+                      onMouseEnter={() => setHighlightIndex(i)}
+                      className={[
+                        'w-full flex items-center gap-2.5 px-2.5 py-[7px] text-[13px] text-left rounded-md transition-colors duration-75',
+                        isHighlighted || isSelected
+                          ? 'bg-[#2c2c30] text-[#e2e2ea]'
+                          : 'text-[#9b9ba4] hover:bg-[#2c2c30] hover:text-[#e2e2ea]',
+                      ].join(' ')}
+                    >
+                      <OptionIcon option={option} />
+                      <span className="truncate flex-1">{option.label}</span>
+                      {option.secondary && (
+                        <span className="text-[#6f6f78] text-xs shrink-0">{option.secondary}</span>
+                      )}
+                      {isSelected && (
+                        <Check className="w-3.5 h-3.5 text-[#5e6ad2] shrink-0" />
+                      )}
+                    </button>
+                  </li>
+                </React.Fragment>
               );
             })}
           </ul>

@@ -5,12 +5,32 @@ A lightweight menu bar app that lets you capture screenshots and instantly creat
 ## Features
 
 - **Global hotkey** (`Cmd+Shift+L`) to capture a region of any screen
-- **Create new tickets** with team, project, title, and description
+- **Create new tickets** with team, project, title, and rich text description
 - **Attach to existing tickets** via search or quick-attach from recent list
+- **Rich text editor** — TipTap-based markdown editor with bubble menu (bold, italic, code, links)
+- **Keyboard shortcuts** for every action — navigate the entire UI without touching the mouse
+- **Toast notifications** for background issue creation (fire-and-forget workflow)
+- **Click-outside-to-dismiss** — click anywhere outside the popup to close it
+- **Metadata selectors** — status, priority, assignee, project, and labels via pill selectors
+- **Recent ticket memory** — last used team/project and recently created tickets are remembered
 - **Multi-monitor support** — captures whichever screen your cursor is on
-- **Remembers your selections** — last used team/project, recently created tickets
 - **Dark mode UI** matching Linear's aesthetic
 - **Encrypted API key storage** via macOS Keychain / Windows DPAPI
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd+Shift+L` | Capture screenshot (global) |
+| `Cmd+Enter` | Submit form |
+| `Escape` | Close popup / cancel capture / close dropdown |
+| `S` | Open status selector |
+| `P` | Open priority selector |
+| `A` | Open assignee selector |
+| `L` | Open labels selector |
+| `I` | Assign to me |
+
+> **Note:** Single-key shortcuts (`S`, `P`, `A`, `L`, `I`) only fire when focus is not in a text input or the rich text editor.
 
 ## Download
 
@@ -71,7 +91,16 @@ npm run make
 
 Output goes to `out/make/`.
 
-### Release
+## Testing
+
+```bash
+npm test            # single run
+npm run test:watch  # watch mode
+```
+
+Tests are co-located with source files as `*.test.ts` and use [Vitest](https://vitest.dev/).
+
+## Release
 
 Push a version tag to trigger the GitHub Actions release workflow:
 
@@ -86,30 +115,40 @@ This builds for macOS (arm64 + x64), Windows, and Linux, then creates a draft Gi
 
 ```
 src/
-  main/           # Electron main process
-    index.ts        # App lifecycle, tray, global hotkey
-    screenshot.ts   # Screen capture + region selection overlay
-    windows.ts      # Popup window management
-    tray.ts         # System tray icon + menu
-    ipc-handlers.ts # IPC bridge (main <-> renderer)
-    preload.ts      # Context bridge for renderer
-  services/        # Business logic (no Electron imports)
-    linear-client.ts  # Linear SDK wrapper
-    linear-issues.ts  # Create/search issues, comments, uploads
-    linear-upload.ts  # File upload via Linear's presigned URL flow
-    store.ts          # Encrypted settings persistence
-  renderer/        # React UI
-    components/     # ActionPicker, NewTicketForm, ExistingTicketSearch, etc.
-    hooks/          # useAsyncData, useIssueSearch, useRecentSelections, etc.
-  shared/          # Types and IPC channel constants
+  main/              # Electron main process
+    index.ts           # App lifecycle, tray, global hotkey, overlay management
+    screenshot.ts      # Screen capture + region selection overlay
+    windows.ts         # Popup window management
+    tray.ts            # System tray icon + context menu
+    overlay.ts         # Fullscreen dim overlay (click-outside-to-dismiss)
+    ipc-handlers.ts    # IPC bridge (main <-> renderer)
+    preload.ts         # Context bridge for renderer
+    templates/         # HTML templates for toast notifications and screenshot overlay
+  services/          # Business logic (no Electron imports)
+    linear-client.ts   # Linear SDK wrapper
+    linear-issues.ts   # Create/search issues, comments, uploads
+    linear-upload.ts   # File upload via Linear's presigned URL flow
+    cache.ts           # TTL cache with stale-while-revalidate
+    store.ts           # Encrypted settings persistence
+    buffer.ts          # Data URL to Buffer conversion
+  renderer/          # React UI
+    components/        # CreateIssueView, ExistingTicketSearch, Dropdown, RichTextEditor, MetadataPill, LinearIcons
+    hooks/             # useAsyncData, useIssueSearch, useRecentSelections, etc.
+    utils/             # emoji.ts (icon shortcodes), styles.ts (shared className constants)
+  shared/            # Types and constants
+    types.ts           # All TypeScript interfaces
+    ipc-channels.ts    # IPC channel name constants
+    colors.js          # Single source of truth for all color hex values
 ```
 
 ## Tech Stack
 
 - [Electron](https://www.electronjs.org/) + [Electron Forge](https://www.electronforge.io/)
-- [React](https://react.dev/) + [Tailwind CSS](https://tailwindcss.com/)
+- [React 19](https://react.dev/) + [Tailwind CSS 3](https://tailwindcss.com/)
+- [TipTap](https://tiptap.dev/) for rich text editing
 - [@linear/sdk](https://github.com/linear/linear) for the Linear API
 - [Vite](https://vitejs.dev/) for bundling
+- [Vitest](https://vitest.dev/) for testing
 - [electron-store](https://github.com/sindresorhus/electron-store) for encrypted persistence
 
 ## License

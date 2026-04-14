@@ -1,9 +1,12 @@
-import type { IpcResult, ScreenshotData, LinearTeam, LinearProject, LinearIssueResult, CreateIssueInput, AddCommentInput, RecentSelections } from '../shared/types';
+import type { IpcResult, ScreenshotData, LinearTeam, LinearProject, LinearWorkflowState, LinearLabel, LinearUser, LinearIssueResult, CreateIssueInput, AddCommentInput, AddCommentBgInput, RecentSelections } from '../shared/types';
 
 interface ElectronApi {
   getScreenshot(): Promise<IpcResult<ScreenshotData>>;
   getTeams(): Promise<IpcResult<LinearTeam[]>>;
   getProjects(): Promise<IpcResult<LinearProject[]>>;
+  getWorkflowStates(teamId: string): Promise<IpcResult<LinearWorkflowState[]>>;
+  getLabels(teamId: string): Promise<IpcResult<LinearLabel[]>>;
+  getMembers(teamId: string): Promise<IpcResult<LinearUser[]>>;
   searchIssues(query: string): Promise<IpcResult<LinearIssueResult[]>>;
   getRecentIssues(): Promise<IpcResult<LinearIssueResult[]>>;
   createIssue(input: CreateIssueInput): Promise<IpcResult<LinearIssueResult>>;
@@ -18,6 +21,9 @@ interface ElectronApi {
   saveLastTeam(teamId: string): Promise<IpcResult>;
   saveLastProject(projectId: string): Promise<IpcResult>;
   saveRecentTicket(ticket: LinearIssueResult): Promise<IpcResult>;
+  showToast(data: { title: string; body: string; url: string }): Promise<IpcResult>;
+  createIssueBg(input: CreateIssueInput): Promise<IpcResult>;
+  addCommentBg(input: AddCommentBgInput): Promise<IpcResult>;
 }
 
 declare global {

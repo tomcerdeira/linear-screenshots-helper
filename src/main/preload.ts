@@ -5,6 +5,9 @@ contextBridge.exposeInMainWorld('api', {
   getScreenshot: () => ipcRenderer.invoke(IPC.GET_SCREENSHOT),
   getTeams: () => ipcRenderer.invoke(IPC.GET_TEAMS),
   getProjects: () => ipcRenderer.invoke(IPC.GET_PROJECTS),
+  getWorkflowStates: (teamId: string) => ipcRenderer.invoke(IPC.GET_WORKFLOW_STATES, teamId),
+  getLabels: (teamId: string) => ipcRenderer.invoke(IPC.GET_LABELS, teamId),
+  getMembers: (teamId: string) => ipcRenderer.invoke(IPC.GET_MEMBERS, teamId),
   searchIssues: (query: string) => ipcRenderer.invoke(IPC.SEARCH_ISSUES, query),
   getRecentIssues: () => ipcRenderer.invoke(IPC.GET_RECENT_ISSUES),
   createIssue: (input: unknown) => ipcRenderer.invoke(IPC.CREATE_ISSUE, input),
@@ -19,4 +22,7 @@ contextBridge.exposeInMainWorld('api', {
   saveLastTeam: (teamId: string) => ipcRenderer.invoke(IPC.SAVE_LAST_TEAM, teamId),
   saveLastProject: (projectId: string) => ipcRenderer.invoke(IPC.SAVE_LAST_PROJECT, projectId),
   saveRecentTicket: (ticket: unknown) => ipcRenderer.invoke(IPC.SAVE_RECENT_TICKET, ticket),
+  showToast: (data: { title: string; body: string; url: string }) => ipcRenderer.invoke(IPC.SHOW_TOAST, data),
+  createIssueBg: (input: unknown) => ipcRenderer.invoke(IPC.CREATE_ISSUE_BG, input),
+  addCommentBg: (input: unknown) => ipcRenderer.invoke(IPC.ADD_COMMENT_BG, input),
 });

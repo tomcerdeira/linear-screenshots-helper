@@ -5,7 +5,9 @@ import { captureScreenshot } from './screenshot';
 import { createPopupWindow } from './windows';
 import { registerIpcHandlers, setCurrentScreenshot } from './ipc-handlers';
 import { hasApiKey } from '../services/linear-client';
-import { getEnabled, getHotkey } from '../services/store';
+import { getEnabled, getHotkey, getRecentSelections } from '../services/store';
+import { showOverlay, closeOverlay } from './overlay';
+import { getTeams, getProjects, getWorkflowStates, getLabels, getMembers } from '../services/linear-issues';
 
 if (started) app.quit();
 
@@ -65,19 +67,36 @@ async function handleCapture(): Promise<void> {
   setCurrentScreenshot(screenshot);
 
   const popup = createPopupWindow();
+  let ready = false;
+  const dismiss = () => { if (ready && !popup.isDestroyed()) popup.close(); };
+  showOverlay(dismiss);
+  popup.on('closed', () => closeOverlay());
   popup.webContents.once('did-finish-load', () => {
     popup.show();
     popup.focus();
+    setTimeout(() => {
+      ready = true;
+      popup.on('blur', dismiss);
+    }, 200);
   });
 }
 
 function openSettings(): void {
   setCurrentScreenshot(null);
+
   const popup = createPopupWindow();
+  let ready = false;
+  const dismiss = () => { if (ready && !popup.isDestroyed()) popup.close(); };
+  showOverlay(dismiss);
+  popup.on('closed', () => closeOverlay());
   popup.webContents.once('did-finish-load', () => {
     popup.webContents.send('navigate', 'settings');
     popup.show();
     popup.focus();
+    setTimeout(() => {
+      ready = true;
+      popup.on('blur', dismiss);
+    }, 200);
   });
 }
 
@@ -85,7 +104,23 @@ app.on('ready', () => {
   registerIpcHandlers();
   createTray(trayCallbacks);
   if (getEnabled()) registerHotkey();
+  prefetchData();
 });
+
+function prefetchData(): void {
+  if (!hasApiKey()) return;
+
+  // Warm the cache so the first popup opens instantly
+  getTeams().catch(() => { /* prefetch — errors are non-fatal */ });
+  getProjects().catch(() => { /* prefetch — errors are non-fatal */ });
+
+  const { lastTeamId } = getRecentSelections();
+  if (lastTeamId) {
+    getWorkflowStates(lastTeamId).catch(() => { /* prefetch — errors are non-fatal */ });
+    getLabels(lastTeamId).catch(() => { /* prefetch — errors are non-fatal */ });
+    getMembers(lastTeamId).catch(() => { /* prefetch — errors are non-fatal */ });
+  }
+}
 
 app.on('will-quit', () => globalShortcut.unregisterAll());
 

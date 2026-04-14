@@ -1,5 +1,6 @@
 import { LinearClient } from '@linear/sdk';
 import { getApiKey } from './store';
+import { invalidateAll } from './cache';
 
 let client: LinearClient | null = null;
 
@@ -18,6 +19,7 @@ export function getLinearClient(): LinearClient {
 
 export function resetClient(): void {
   client = null;
+  invalidateAll();
 }
 
 export function hasApiKey(): boolean {

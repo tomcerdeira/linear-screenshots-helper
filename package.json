@@ -9,9 +9,16 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx ."
+    "lint": "eslint --ext .ts,.tsx .",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
-  "keywords": [],
+  "keywords": ["linear", "screenshot", "electron", "menu-bar", "productivity"],
+  "homepage": "https://github.com/tomcerdeira/linear-screenshots-helper",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tomcerdeira/linear-screenshots-helper.git"
+  },
   "author": {
     "name": "tomcerdeira",
     "email": "tomas.cerdeira@gmail.com"
@@ -34,6 +41,7 @@
     "@types/node-emoji": "^1.8.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/turndown": "^5.0.6",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "@vitejs/plugin-react": "^4.7.0",
@@ -44,14 +52,29 @@
     "postcss": "^8.5.9",
     "tailwindcss": "^3.4.19",
     "typescript": "~5.5.0",
-    "vite": "^5.4.21"
+    "vite": "^5.4.21",
+    "vitest": "^4.1.4"
   },
   "dependencies": {
     "@linear/sdk": "^81.0.0",
+    "@tiptap/extension-bubble-menu": "^3.22.3",
+    "@tiptap/extension-link": "^3.22.3",
+    "@tiptap/extension-placeholder": "^3.22.3",
+    "@tiptap/extension-underline": "^3.22.3",
+    "@tiptap/pm": "^3.22.3",
+    "@tiptap/react": "^3.22.3",
+    "@tiptap/starter-kit": "^3.22.3",
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^8.2.0",
+    "lucide-react": "^1.8.0",
     "node-emoji": "^2.2.0",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "turndown": "^7.2.4"
+  },
+  "overrides": {
+    "tar": "^7.5.11",
+    "@tootallnate/once": "^3.0.1",
+    "tmp": "^0.2.4"
   }
 }

@@ -4,8 +4,8 @@ import path from 'node:path';
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const MAIN_WINDOW_VITE_NAME: string;
 
-const POPUP_WIDTH = 440;
-const POPUP_HEIGHT = 520;
+const POPUP_WIDTH = 660;
+const POPUP_HEIGHT = 440;
 
 let popupWindow: BrowserWindow | null = null;
 
@@ -29,15 +29,15 @@ export function createPopupWindow(): BrowserWindow {
     alwaysOnTop: true,
     skipTaskbar: true,
     hasShadow: true,
-    vibrancy: 'popover',
-    visualEffectState: 'active',
-    roundedCorners: true,
+    backgroundColor: '#1f2023',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
+
+  popupWindow.setAlwaysOnTop(true, 'screen-saver');
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     popupWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);

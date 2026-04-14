@@ -23,6 +23,27 @@ export interface LinearProject {
   readonly icon: string | null;
 }
 
+export interface LinearWorkflowState {
+  readonly id: string;
+  readonly name: string;
+  readonly type: string;
+  readonly color: string;
+}
+
+export interface LinearLabel {
+  readonly id: string;
+  readonly name: string;
+  readonly color: string;
+}
+
+export interface LinearUser {
+  readonly id: string;
+  readonly name: string;
+  readonly displayName: string;
+  readonly avatarUrl: string | null;
+  readonly isMe?: boolean;
+}
+
 export interface LinearIssueResult {
   readonly id: string;
   readonly identifier: string;
@@ -39,6 +60,10 @@ export interface IpcResult<T = unknown> {
 export interface CreateIssueInput {
   readonly teamId: string;
   readonly projectId?: string;
+  readonly stateId?: string;
+  readonly priority?: number;
+  readonly assigneeId?: string;
+  readonly labelIds?: string[];
   readonly title: string;
   readonly description: string;
   readonly screenshotDataUrl: string;
@@ -48,6 +73,12 @@ export interface AddCommentInput {
   readonly issueId: string;
   readonly comment: string;
   readonly screenshotDataUrl: string;
+}
+
+export interface AddCommentBgInput extends AddCommentInput {
+  readonly issueIdentifier?: string;
+  readonly issueTitle?: string;
+  readonly issueUrl?: string;
 }
 
 export interface RecentSelections {
