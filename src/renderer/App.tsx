@@ -1,14 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useScreenshot } from './hooks/useScreenshot';
 import { CreateIssueView } from './components/CreateIssueView';
 import { ExistingTicketSearch } from './components/ExistingTicketSearch';
 import { SettingsView } from './components/SettingsView';
+import type { ScreenshotData } from '../shared/types';
 
 type View = 'create' | 'existing' | 'settings';
 
 export function App() {
   const { screenshot, loading, error } = useScreenshot();
   const [view, setView] = useState<View>('create');
+  const [queuedScreenshots, setQueuedScreenshots] = useState<ScreenshotData[]>([]);
+  const [isQueueMode, setIsQueueMode] = useState(false);
+
+  useEffect(() => {
+    async function checkQueue() {
+      const result = await window.api.getScreenshotQueue();
+      if (result.success && result.data && result.data.length > 0) {
+        setQueuedScreenshots(result.data);
+        setIsQueueMode(true);
+      }
+    }
+    checkQueue();
+  }, []);
 
   function handleClose() {
     window.api.closeWindow();
@@ -24,6 +38,37 @@ export function App() {
     );
   }
 
+  // Queue mode: multiple screenshots
+  if (isQueueMode && queuedScreenshots.length > 0) {
+    const primaryScreenshot = queuedScreenshots[0];
+    const allDataUrls = queuedScreenshots.map((s) => s.dataUrl);
+
+    return (
+      <Shell>
+        {view === 'create' && (
+          <CreateIssueView
+            screenshotDataUrl={primaryScreenshot.dataUrl}
+            additionalScreenshots={allDataUrls.slice(1)}
+            onClose={handleClose}
+            onSwitchToExisting={() => setView('existing')}
+          />
+        )}
+
+        {view === 'existing' && (
+          <ExistingTicketSearch
+            screenshotDataUrl={primaryScreenshot.dataUrl}
+            onBack={() => setView('create')}
+          />
+        )}
+
+        {view === 'settings' && (
+          <SettingsView onBack={() => setView('create')} onClose={handleClose} />
+        )}
+      </Shell>
+    );
+  }
+
+  // Single screenshot mode
   if (error || !screenshot) {
     return (
       <Shell>

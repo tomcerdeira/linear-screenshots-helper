@@ -15,11 +15,11 @@ Electron menu-bar app that captures screenshots and creates/attaches them to Lin
 
 ### Main Process (`src/main/`)
 - `index.ts` — app lifecycle, tray, global hotkey, overlay management
-- `screenshot.ts` — screen capture + region selection overlay
+- `screenshot.ts` — static screen capture + region selection overlay (capture first, then show overlay)
 - `windows.ts` — popup window management
 - `tray.ts` — system tray icon + context menu
-- `overlay.ts` — fullscreen dim overlay (click-outside-to-dismiss)
-- `ipc-handlers.ts` — IPC bridge between main and renderer
+- `overlay.ts` — fullscreen dim overlay with click-to-dismiss
+- `ipc-handlers.ts` — IPC bridge between main and renderer, multi-screenshot queue management
 - `preload.ts` — context bridge for renderer
 - `templates/` — HTML templates for toast notifications and screenshot overlay
 
@@ -33,6 +33,7 @@ Electron menu-bar app that captures screenshots and creates/attaches them to Lin
 - `components/LinearIcons.tsx` — Linear-matching SVG icons (status circles, priority bars)
 - `hooks/` — data fetching hooks (useAsyncData pattern)
 - `utils/emoji.ts` — Linear icon shortcode to emoji conversion
+- `utils/hotkey.ts` — hotkey formatting and keyboard event to accelerator conversion
 - `utils/styles.ts` — shared className constants (INPUT_CLASS, BTN_PRIMARY_CLASS, etc.)
 
 ### Services (`src/services/`)
@@ -51,9 +52,7 @@ Electron menu-bar app that captures screenshots and creates/attaches them to Lin
 ## Conventions
 
 ### Colors
-- All color values come from `src/shared/colors.js` and the Tailwind config
-- In renderer components: use Tailwind token classes (`bg-surface-input`, `text-linear-brand`, `border-border`)
-- In main process HTML templates: import from `src/shared/colors.js`
+- Renderer components use Tailwind token classes (e.g. `bg-surface-input`, `text-linear-brand`). The tokens are defined in `tailwind.config.js`, sourced from `src/shared/colors.js`. Main process HTML templates import hex values from `src/shared/colors.js` directly.
 - Never hardcode hex values in components
 
 ### Styles
@@ -78,11 +77,20 @@ Electron menu-bar app that captures screenshots and creates/attaches them to Lin
 - Main process registers handlers in `src/main/ipc-handlers.ts`
 - Background operations use `*Bg` variants (fire-and-forget with toast notification)
 
+### Features
+- Multi-screenshot collect mode: queue multiple screenshots before opening the issue form
+- Customizable hotkeys (capture, collect, open queue) in settings
+- Image paste support in TipTap rich text editor
+- Tab navigation through metadata pills
+
 ### Keyboard Shortcuts
-- `Cmd+Shift+L` — capture screenshot (global)
+- `Cmd+Shift+L` — capture screenshot (global, customizable)
+- `Alt+Cmd+Shift+L` — collect screenshot to queue (global, customizable)
+- `Cmd+Shift+Enter` — open issue with queued screenshots (global, customizable)
 - `Cmd+Enter` — submit form
 - `Escape` — close popup/dropdown
-- `S` / `P` / `A` / `L` / `I` — open status/priority/assignee/labels/assign-to-me (when not in input)
+- `S` / `P` / `A` / `L` / `I` / `E` — status/priority/assignee/labels/assign-to-me/attach-to-existing (when not in input)
+- `Tab` — navigate between fields and pills
 
 ## Common Pitfalls
 - TipTap `@tiptap/react/menus` subpath export needs a type declaration in `src/renderer/types/tiptap-menus.d.ts`
@@ -90,3 +98,4 @@ Electron menu-bar app that captures screenshots and creates/attaches them to Lin
 - `electron-store` requires `safeStorage` for encrypting the API key
 - The popup window is `transparent: false` with extra height for dropdown overflow
 - Keyboard shortcuts must check `el.isContentEditable` to avoid firing in the rich text editor
+- The screenshot overlay uses a static capture approach (capture full screen first, then show overlay for region selection). Live transparent overlays have compositor issues on macOS.

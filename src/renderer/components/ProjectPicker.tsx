@@ -41,8 +41,8 @@ export function ProjectPicker({ value, onChange, variant = 'default' }: ProjectP
         renderTrigger={(selectedOpt, isOpen) => (
           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[12px] transition-colors cursor-pointer ${
             isOpen
-              ? 'bg-[#2a2a2e] border-[#444450] text-[#e2e2ea]'
-              : 'border-[#333338] text-[#8b8ea4] hover:border-[#444450] hover:text-[#e2e2ea]'
+              ? 'bg-surface-input border-border-hover text-content'
+              : 'border-border text-content-secondary hover:border-border-hover hover:text-content'
           }`}>
             {icon && <span className="text-[13px]">{icon}</span>}
             {selected ? selected.name : 'Project'}

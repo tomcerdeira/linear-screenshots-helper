@@ -23,16 +23,12 @@ function useShortcutKey(key: string | undefined, ref: React.RefObject<HTMLDivEle
   }, [key, ref]);
 }
 
-interface MetadataPillProps {
-  readonly label: string;
-  readonly pillIcon?: React.ReactNode;
-  readonly options: DropdownOption[];
-  readonly value: string;
-  readonly onChange: (value: string) => void;
-  readonly disabled?: boolean;
-  readonly panelMinWidth?: number;
-  readonly searchPlaceholder?: string;
-  readonly shortcutKey?: string;
+function Kbd({ children }: { readonly children: string }) {
+  return (
+    <kbd className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded bg-surface-input border border-border-subtle text-[10px] font-medium text-content-muted leading-none uppercase">
+      {children}
+    </kbd>
+  );
 }
 
 function PillAvatar({ url, name }: { readonly url?: string | null; readonly name: string }) {
@@ -43,10 +39,22 @@ function PillAvatar({ url, name }: { readonly url?: string | null; readonly name
   }
 
   return (
-    <span className="w-4 h-4 rounded-full bg-[#3b3b40] flex items-center justify-center text-[8px] font-medium text-[#9b9ba4] shrink-0">
+    <span className="w-4 h-4 rounded-full bg-border-subtle flex items-center justify-center text-[8px] font-medium text-content-secondary shrink-0">
       {initials}
     </span>
   );
+}
+
+interface MetadataPillProps {
+  readonly label: string;
+  readonly pillIcon?: React.ReactNode;
+  readonly options: DropdownOption[];
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+  readonly disabled?: boolean;
+  readonly panelMinWidth?: number;
+  readonly searchPlaceholder?: string;
+  readonly shortcutKey?: string;
 }
 
 export function MetadataPill({ label, pillIcon, options, value, onChange, disabled, panelMinWidth = 200, searchPlaceholder, shortcutKey }: MetadataPillProps) {
@@ -67,10 +75,10 @@ export function MetadataPill({ label, pillIcon, options, value, onChange, disabl
       searchPlaceholder={searchPlaceholder}
       panelMinWidth={panelMinWidth}
       renderTrigger={(_sel, isOpen) => (
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[12px] whitespace-nowrap transition-colors cursor-pointer ${
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[12px] whitespace-nowrap transition-colors cursor-pointer focus-within:ring-1 focus-within:ring-linear-brand ${
           isOpen
-            ? 'bg-[#2a2a2e] border-[#444450] text-[#e2e2ea]'
-            : 'border-[#333338] text-[#8b8ea4] hover:border-[#444450] hover:text-[#e2e2ea]'
+            ? 'bg-surface-input border-border-hover text-content'
+            : 'border-border text-content-secondary hover:border-border-hover hover:text-content'
         }`}>
           {hasAvatar && selected ? (
             <PillAvatar url={selected.avatarUrl} name={selected.label} />
@@ -78,6 +86,7 @@ export function MetadataPill({ label, pillIcon, options, value, onChange, disabl
             <span className="shrink-0 flex items-center">{pillIcon}</span>
           ) : null}
           {selected ? selected.label : label}
+          {shortcutKey && <Kbd>{shortcutKey}</Kbd>}
         </span>
       )}
     />
@@ -125,13 +134,14 @@ export function MultiMetadataPill({ label, pillIcon, options, values, onChange, 
       renderTrigger={(_sel, isOpen) => (
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[12px] whitespace-nowrap transition-colors cursor-pointer max-w-[180px] ${
           isOpen
-            ? 'bg-[#2a2a2e] border-[#444450] text-[#e2e2ea]'
+            ? 'bg-surface-input border-border-hover text-content'
             : values.length > 0
-              ? 'border-[#444450] text-[#e2e2ea]'
-              : 'border-[#333338] text-[#8b8ea4] hover:border-[#444450] hover:text-[#e2e2ea]'
+              ? 'border-border-hover text-content'
+              : 'border-border text-content-secondary hover:border-border-hover hover:text-content'
         }`}>
           {pillIcon && <span className="shrink-0 flex items-center">{pillIcon}</span>}
           <span className="truncate">{displayText}</span>
+          {shortcutKey && <Kbd>{shortcutKey}</Kbd>}
         </span>
       )}
     />

@@ -6,10 +6,10 @@ body {
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #1f2023;
+  background: theme('colors.surface.DEFAULT');
   overflow: hidden;
   -webkit-app-region: no-drag;
-  color: #e2e2ea;
+  color: theme('colors.content.DEFAULT');
 }
 
 .drag-handle {
@@ -59,7 +59,7 @@ body {
 }
 
 .skeleton-pill {
-  background: linear-gradient(90deg, #2a2a2e 25%, #333338 50%, #2a2a2e 75%);
+  background: linear-gradient(90deg, theme('colors.surface.input') 25%, theme('colors.border.DEFAULT') 50%, theme('colors.surface.input') 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
 }
@@ -75,14 +75,14 @@ body {
 
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
-  color: #4a4a55;
+  color: theme('colors.content.placeholder');
   float: left;
   height: 0;
   pointer-events: none;
 }
 
 .tiptap h1, .tiptap h2, .tiptap h3 {
-  color: #e2e2ea;
+  color: theme('colors.content.DEFAULT');
   font-weight: 600;
   margin: 0.5em 0 0.25em;
 }
@@ -91,7 +91,7 @@ body {
 .tiptap h2 { font-size: 1.2em; }
 .tiptap h3 { font-size: 1.05em; }
 
-.tiptap strong { color: #e2e2ea; }
+.tiptap strong { color: theme('colors.content.DEFAULT'); }
 
 .tiptap em { font-style: italic; }
 
@@ -106,24 +106,24 @@ body {
 }
 
 .tiptap blockquote {
-  border-left: 2px solid #333338;
+  border-left: 2px solid theme('colors.border.DEFAULT');
   padding-left: 12px;
   margin: 0.5em 0;
-  color: #9b9ba4;
+  color: theme('colors.content.secondary');
 }
 
 .tiptap code {
-  background: #2c2c30;
+  background: theme('colors.surface.hover');
   border-radius: 3px;
   padding: 1px 4px;
   font-size: 0.9em;
-  color: #e2e2ea;
+  color: theme('colors.content.DEFAULT');
   font-family: 'SF Mono', 'Fira Code', monospace;
 }
 
 .tiptap pre {
   background: #1a1a1e;
-  border: 1px solid #333338;
+  border: 1px solid theme('colors.border.DEFAULT');
   border-radius: 6px;
   padding: 12px;
   margin: 0.5em 0;
@@ -148,3 +148,13 @@ body {
 
 .tiptap ul { list-style-type: disc; }
 .tiptap ol { list-style-type: decimal; }
+
+.tiptap .inline-image,
+.tiptap img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  border: 1px solid theme('colors.border.DEFAULT');
+  margin: 0.5em 0;
+  display: block;
+}

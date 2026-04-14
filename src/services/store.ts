@@ -15,6 +15,8 @@ interface StoreSchema {
   encryptedApiKey: string;
   enabled: boolean;
   hotkey: string;
+  collectHotkey: string;
+  openQueueHotkey: string;
   lastTeamId: string;
   lastProjectId: string;
   recentTickets: StoredTicket[];
@@ -25,6 +27,8 @@ const store = new Store<StoreSchema>({
     encryptedApiKey: '',
     enabled: true,
     hotkey: 'CommandOrControl+Shift+L',
+    collectHotkey: 'Alt+CommandOrControl+Shift+L',
+    openQueueHotkey: 'CommandOrControl+Shift+Return',
     lastTeamId: '',
     lastProjectId: '',
     recentTickets: [],
@@ -64,6 +68,22 @@ export function getHotkey(): string {
 
 export function setHotkey(hotkey: string): void {
   store.set('hotkey', hotkey);
+}
+
+export function getCollectHotkey(): string {
+  return store.get('collectHotkey');
+}
+
+export function setCollectHotkey(hotkey: string): void {
+  store.set('collectHotkey', hotkey);
+}
+
+export function getOpenQueueHotkey(): string {
+  return store.get('openQueueHotkey');
+}
+
+export function setOpenQueueHotkey(hotkey: string): void {
+  store.set('openQueueHotkey', hotkey);
 }
 
 export function getConfig(): AppConfig {

@@ -18,6 +18,7 @@ const PRIORITY_OPTIONS = [
 
 interface CreateIssueViewProps {
   readonly screenshotDataUrl: string;
+  readonly additionalScreenshots?: string[];
   readonly onClose: () => void;
   readonly onSwitchToExisting: () => void;
 }
@@ -26,7 +27,7 @@ function SkeletonPill() {
   return <span className="skeleton-pill inline-block w-[72px] h-[26px] rounded-full" />;
 }
 
-export function CreateIssueView({ screenshotDataUrl, onClose, onSwitchToExisting }: CreateIssueViewProps) {
+export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onClose, onSwitchToExisting }: CreateIssueViewProps) {
   const { lastTeamId, lastProjectId, loading: loadingRecent } = useRecentSelections();
   const [teamId, setTeamId] = useState('');
   const [projectId, setProjectId] = useState('');
@@ -52,15 +53,18 @@ export function CreateIssueView({ screenshotDataUrl, onClose, onSwitchToExisting
         e.preventDefault();
         handleSubmit();
       }
-      // I = assign to me (only when not in an editable field)
+      // Single-key shortcuts (only when not in an editable field)
       const el = e.target as HTMLElement;
       if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable) return;
-      if (e.key === 'i' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === 'e') {
+        e.preventDefault();
+        onSwitchToExisting();
+        return;
+      }
+      if (e.key === 'i') {
         const me = members.find((m) => m.isMe);
-        if (me) {
-          e.preventDefault();
-          setAssigneeId(me.id);
-        }
+        if (me) { e.preventDefault(); setAssigneeId(me.id); }
       }
     }
     window.addEventListener('keydown', onKeyDown);
@@ -115,6 +119,7 @@ export function CreateIssueView({ screenshotDataUrl, onClose, onSwitchToExisting
       title: form.title.trim(),
       description: form.description.trim(),
       screenshotDataUrl,
+      additionalScreenshotDataUrls: additionalScreenshots,
     });
     onClose();
   }
@@ -144,7 +149,7 @@ export function CreateIssueView({ screenshotDataUrl, onClose, onSwitchToExisting
     const others = members.filter((m) => !m.isMe);
 
     return [
-      { value: '', label: 'No assignee', renderIcon: <User className="w-4 h-4 text-[#6f6f78]" /> },
+      { value: '', label: 'No assignee', renderIcon: <User className="w-4 h-4 text-content-muted" /> },
       ...(me ? [{ value: me.id, label: me.displayName, avatarUrl: me.avatarUrl }] : []),
       ...others.map((m) => ({ value: m.id, label: m.displayName, avatarUrl: m.avatarUrl, group: 'Team members' })),
     ];
@@ -158,21 +163,22 @@ export function CreateIssueView({ screenshotDataUrl, onClose, onSwitchToExisting
       <div className="flex items-center gap-2 px-4 py-2.5 shrink-0 drag-handle">
         <div className="no-drag flex items-center gap-2 flex-1 min-w-0">
           <TeamPicker value={teamId} onChange={handleTeamChange} variant="compact" />
-          <span className="text-[#5a5e7a] text-xs">&rsaquo;</span>
-          <span className="text-[13px] text-[#e2e2ea] font-medium">New issue</span>
+          <span className="text-content-ghost text-xs">&rsaquo;</span>
+          <span className="text-[13px] text-content font-medium">New issue</span>
         </div>
         <div className="no-drag flex items-center gap-1">
           <button
             type="button"
             onClick={onSwitchToExisting}
-            className="px-2 py-1 text-[11px] text-[#5a5e7a] hover:text-[#e2e2ea] hover:bg-[#2a2a2e] rounded transition-colors"
+            className="px-2 py-1 text-[11px] text-content-ghost hover:text-content hover:bg-surface-input rounded transition-colors flex items-center gap-1"
           >
             Attach to existing
+            <kbd className="inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded bg-surface-input border border-border-subtle text-[9px] font-medium text-content-muted leading-none uppercase">E</kbd>
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 text-[#5a5e7a] hover:text-[#e2e2ea] hover:bg-[#2a2a2e] rounded transition-colors"
+            className="p-1 text-content-ghost hover:text-content hover:bg-surface-input rounded transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -193,35 +199,49 @@ export function CreateIssueView({ screenshotDataUrl, onClose, onSwitchToExisting
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Issue title"
-          className="w-full bg-transparent border-none text-[18px] font-medium text-[#e2e2ea] placeholder-[#4a4a55] focus:outline-none p-0 mb-1 ring-0 focus:ring-0"
+          className="w-full bg-transparent border-none text-[18px] font-medium text-content placeholder-content-placeholder focus:outline-none p-0 mb-1 ring-0 focus:ring-0"
           autoFocus
         />
 
         <RichTextEditor onChange={setDescription} />
 
-        {showScreenshot ? (
-          <div className="mb-2 relative">
-            <ScreenshotPreview dataUrl={screenshotDataUrl} />
+        {(() => {
+          const allScreenshots = [screenshotDataUrl, ...(additionalScreenshots ?? [])];
+          const count = allScreenshots.length;
+
+          if (showScreenshot) {
+            return (
+              <div className="mb-2 flex flex-col gap-2">
+                {allScreenshots.map((url, i) => (
+                  <div key={i} className="relative">
+                    <ScreenshotPreview dataUrl={url} />
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setShowScreenshot(false)}
+                  className="flex items-center gap-1.5 text-xs text-content-ghost hover:text-content-secondary transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                  Hide {count > 1 ? `${count} screenshots` : 'screenshot'}
+                </button>
+              </div>
+            );
+          }
+
+          return (
             <button
               type="button"
-              onClick={() => setShowScreenshot(false)}
-              className="absolute top-1.5 right-1.5 p-0.5 bg-[#1f2023]/80 rounded hover:bg-[#333338] transition-colors"
+              onClick={() => setShowScreenshot(true)}
+              className="mb-2 flex items-center gap-1.5 text-xs text-content-ghost hover:text-content-secondary transition-colors"
             >
-              <X className="w-3.5 h-3.5 text-[#8b8ea4]" />
+              <Image className="w-3.5 h-3.5" />
+              {count} screenshot{count > 1 ? 's' : ''} attached
             </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowScreenshot(true)}
-            className="mb-2 flex items-center gap-1.5 text-xs text-[#5a5e7a] hover:text-[#8b8ea4] transition-colors"
-          >
-            <Image className="w-3.5 h-3.5" />
-            1 screenshot attached
-          </button>
-        )}
+          );
+        })()}
 
-        {error && <p className="text-[#e5484d] text-xs mb-1">{error}</p>}
+        {error && <p className="text-feedback-error text-xs mb-1">{error}</p>}
       </div>
 
       {/* Metadata pills */}
@@ -291,7 +311,7 @@ export function CreateIssueView({ screenshotDataUrl, onClose, onSwitchToExisting
         <button
           type="button"
           onClick={() => setShowScreenshot(!showScreenshot)}
-          className="p-1.5 text-[#5a5e7a] hover:text-[#e2e2ea] hover:bg-[#2a2a2e] rounded transition-colors"
+          className="p-1.5 text-content-ghost hover:text-content hover:bg-surface-input rounded transition-colors"
           title="Toggle screenshot preview"
         >
           <Paperclip className="w-4 h-4" />
@@ -301,7 +321,7 @@ export function CreateIssueView({ screenshotDataUrl, onClose, onSwitchToExisting
           type="button"
           onClick={handleSubmit}
           disabled={!teamId || !title.trim()}
-          className="px-4 py-1.5 bg-[#5e6ad2] text-white rounded-full text-[13px] font-medium hover:bg-[#6c78e0] transition-colors disabled:opacity-35 disabled:cursor-not-allowed"
+          className="px-4 py-1.5 bg-linear-brand text-white rounded-full text-[13px] font-medium hover:bg-linear-brand-hover transition-colors disabled:opacity-35 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-linear-brand/50 focus-visible:ring-offset-1 focus-visible:ring-offset-surface"
         >
           Create issue
         </button>

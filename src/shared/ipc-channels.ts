@@ -1,5 +1,7 @@
 export const IPC = {
   GET_SCREENSHOT: 'screenshot:getData',
+  GET_SCREENSHOT_QUEUE: 'screenshot:getQueue',
+  GET_QUEUE_COUNT: 'screenshot:getQueueCount',
   GET_TEAMS: 'linear:getTeams',
   GET_PROJECTS: 'linear:getProjects',
   GET_WORKFLOW_STATES: 'linear:getWorkflowStates',
@@ -21,6 +23,10 @@ export const IPC = {
   SAVE_RECENT_TICKET: 'store:saveRecentTicket',
   GET_HOTKEY: 'store:getHotkey',
   SET_HOTKEY: 'store:setHotkey',
+  GET_COLLECT_HOTKEY: 'store:getCollectHotkey',
+  SET_COLLECT_HOTKEY: 'store:setCollectHotkey',
+  GET_OPEN_QUEUE_HOTKEY: 'store:getOpenQueueHotkey',
+  SET_OPEN_QUEUE_HOTKEY: 'store:setOpenQueueHotkey',
   SHOW_TOAST: 'app:showToast',
   CREATE_ISSUE_BG: 'linear:createIssueBg',
   ADD_COMMENT_BG: 'linear:addCommentBg',

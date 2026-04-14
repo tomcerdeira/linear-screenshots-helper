@@ -6,10 +6,11 @@ declare const MAIN_WINDOW_VITE_NAME: string;
 
 const POPUP_WIDTH = 660;
 const POPUP_HEIGHT = 440;
+const SETTINGS_HEIGHT = 560;
 
 let popupWindow: BrowserWindow | null = null;
 
-export function createPopupWindow(): BrowserWindow {
+export function createPopupWindow(options?: { height?: number }): BrowserWindow {
   if (popupWindow && !popupWindow.isDestroyed()) {
     popupWindow.focus();
     return popupWindow;
@@ -21,9 +22,9 @@ export function createPopupWindow(): BrowserWindow {
 
   popupWindow = new BrowserWindow({
     x: Math.round(x + (width - POPUP_WIDTH) / 2),
-    y: Math.round(y + (height - POPUP_HEIGHT) / 2),
+    y: Math.round(y + (height - (options?.height ?? POPUP_HEIGHT)) / 2),
     width: POPUP_WIDTH,
-    height: POPUP_HEIGHT,
+    height: options?.height ?? POPUP_HEIGHT,
     frame: false,
     resizable: false,
     alwaysOnTop: true,

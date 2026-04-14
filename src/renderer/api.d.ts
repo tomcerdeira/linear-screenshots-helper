@@ -2,6 +2,7 @@ import type { IpcResult, ScreenshotData, LinearTeam, LinearProject, LinearWorkfl
 
 interface ElectronApi {
   getScreenshot(): Promise<IpcResult<ScreenshotData>>;
+  getScreenshotQueue(): Promise<IpcResult<ScreenshotData[]>>;
   getTeams(): Promise<IpcResult<LinearTeam[]>>;
   getProjects(): Promise<IpcResult<LinearProject[]>>;
   getWorkflowStates(teamId: string): Promise<IpcResult<LinearWorkflowState[]>>;
@@ -17,6 +18,10 @@ interface ElectronApi {
   setEnabled(enabled: boolean): Promise<IpcResult>;
   getHotkey(): Promise<IpcResult<string>>;
   setHotkey(hotkey: string): Promise<IpcResult>;
+  getCollectHotkey(): Promise<IpcResult<string>>;
+  setCollectHotkey(hotkey: string): Promise<IpcResult>;
+  getOpenQueueHotkey(): Promise<IpcResult<string>>;
+  setOpenQueueHotkey(hotkey: string): Promise<IpcResult>;
   openSettings(): Promise<void>;
   closeWindow(): Promise<IpcResult>;
   getRecentSelections(): Promise<IpcResult<RecentSelections>>;

@@ -121,13 +121,46 @@ export async function searchIssues(query: string): Promise<LinearIssueResult[]> 
   return results.nodes.map(toIssueResult);
 }
 
+async function uploadInlineImages(markdown: string): Promise<string> {
+  const dataUrlPattern = /!\[([^\]]*)\]\((data:image\/[^)]+)\)/g;
+  let result = markdown;
+  const matches = [...markdown.matchAll(dataUrlPattern)];
+
+  for (const match of matches) {
+    const [fullMatch, alt, dataUrl] = match;
+    const buffer = dataUrlToBuffer(dataUrl);
+    const assetUrl = await uploadScreenshot(buffer, `inline-${Date.now()}.png`);
+    result = result.replace(fullMatch, `![${alt}](${assetUrl})`);
+  }
+
+  return result;
+}
+
 export async function createIssue(input: CreateIssueInput): Promise<LinearIssueResult> {
   const client = getLinearClient();
   const assetUrl = await uploadScreenshotFromDataUrl(input.screenshotDataUrl);
 
-  const description = input.description
-    ? `${input.description}\n\n![screenshot](${assetUrl})`
-    : `![screenshot](${assetUrl})`;
+  // Upload additional screenshots if present (multi-screenshot mode)
+  const additionalAssetUrls: string[] = [];
+  if (input.additionalScreenshotDataUrls?.length) {
+    for (const dataUrl of input.additionalScreenshotDataUrls) {
+      const url = await uploadScreenshotFromDataUrl(dataUrl);
+      additionalAssetUrls.push(url);
+    }
+  }
+
+  const descriptionMd = input.description
+    ? await uploadInlineImages(input.description)
+    : '';
+
+  // Build the screenshots section
+  const allScreenshotsMd = [assetUrl, ...additionalAssetUrls]
+    .map((url, i) => `![screenshot-${i + 1}](${url})`)
+    .join('\n\n');
+
+  const description = descriptionMd
+    ? `${descriptionMd}\n\n${allScreenshotsMd}`
+    : allScreenshotsMd;
 
   const result = await client.createIssue({
     teamId: input.teamId,
@@ -160,8 +193,9 @@ export async function addCommentWithScreenshot(
   const client = getLinearClient();
   const assetUrl = await uploadScreenshotFromDataUrl(screenshotDataUrl);
 
-  const body = comment
-    ? `${comment}\n\n![screenshot](${assetUrl})`
+  const processedComment = comment ? await uploadInlineImages(comment) : '';
+  const body = processedComment
+    ? `${processedComment}\n\n![screenshot](${assetUrl})`
     : `![screenshot](${assetUrl})`;
 
   const result = await client.createComment({ issueId, body });

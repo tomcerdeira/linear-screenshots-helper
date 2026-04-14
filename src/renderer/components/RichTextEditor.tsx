@@ -6,6 +6,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
+import Image from '@tiptap/extension-image';
 import {
   Bold, Italic, Strikethrough, Underline as UnderlineIcon,
   Link as LinkIcon, Quote, Code, List, ListOrdered, Heading2, X,
@@ -23,6 +24,15 @@ interface RichTextEditorProps {
   readonly placeholder?: string;
 }
 
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export function RichTextEditor({ onChange, placeholder = 'Add description...' }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -34,6 +44,13 @@ export function RichTextEditor({ onChange, placeholder = 'Add description...' }:
         openOnClick: false,
         HTMLAttributes: { class: 'text-[#5e6ad2] underline' },
       }),
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'inline-image',
+        },
+      }),
       Placeholder.configure({ placeholder }),
     ],
     editorProps: {
@@ -41,7 +58,52 @@ export function RichTextEditor({ onChange, placeholder = 'Add description...' }:
         class: 'prose-editor focus:outline-none min-h-[40px] text-[14px] text-[#b4b5c8]',
       },
       handleKeyDown: (_view, event) => {
+        if (event.key === 'Tab') return false;
         if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) return false;
+        return false;
+      },
+      handlePaste: (view, event) => {
+        const items = event.clipboardData?.items;
+        if (!items) return false;
+
+        for (const item of items) {
+          if (item.type.startsWith('image/')) {
+            event.preventDefault();
+            const file = item.getAsFile();
+            if (!file) return true;
+
+            fileToDataUrl(file).then((dataUrl) => {
+              const { state } = view;
+              const tr = state.tr.replaceSelectionWith(
+                state.schema.nodes.image.create({ src: dataUrl }),
+              );
+              view.dispatch(tr);
+            });
+            return true;
+          }
+        }
+        return false;
+      },
+      handleDrop: (view, event) => {
+        const files = event.dataTransfer?.files;
+        if (!files?.length) return false;
+
+        for (const file of files) {
+          if (file.type.startsWith('image/')) {
+            event.preventDefault();
+
+            fileToDataUrl(file).then((dataUrl) => {
+              const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY });
+              if (!coordinates) return;
+              const tr = view.state.tr.insert(
+                coordinates.pos,
+                view.state.schema.nodes.image.create({ src: dataUrl }),
+              );
+              view.dispatch(tr);
+            });
+            return true;
+          }
+        }
         return false;
       },
     },
@@ -75,7 +137,7 @@ export function RichTextEditor({ onChange, placeholder = 'Add description...' }:
     <div className="flex flex-col flex-1">
       {editor && (
         <BubbleMenu editor={editor}>
-          <div className="flex items-center gap-0.5 bg-[#232326] border border-[#3b3b40] rounded-lg px-1 py-0.5 shadow-xl shadow-black/50">
+          <div className="flex items-center gap-0.5 bg-surface-raised border border-border-subtle rounded-lg px-1 py-0.5 shadow-xl shadow-black/50">
             <BubbleBtn
               onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
               active={editor.isActive('heading', { level: 2 })}
@@ -174,8 +236,8 @@ function BubbleBtn({
       title={title}
       className={`p-1.5 rounded transition-colors ${
         active
-          ? 'text-[#e2e2ea] bg-[#2c2c30]'
-          : 'text-[#6f6f78] hover:text-[#e2e2ea] hover:bg-[#2c2c30]'
+          ? 'text-content bg-surface-hover'
+          : 'text-content-muted hover:text-content hover:bg-surface-hover'
       }`}
     >
       {children}
@@ -184,5 +246,5 @@ function BubbleBtn({
 }
 
 function BubbleDivider() {
-  return <div className="w-px h-4 bg-[#3b3b40] mx-0.5" />;
+  return <div className="w-px h-4 bg-border-subtle mx-0.5" />;
 }

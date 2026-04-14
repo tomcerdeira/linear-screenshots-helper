@@ -3,6 +3,7 @@ import { IPC } from '../shared/ipc-channels';
 
 contextBridge.exposeInMainWorld('api', {
   getScreenshot: () => ipcRenderer.invoke(IPC.GET_SCREENSHOT),
+  getScreenshotQueue: () => ipcRenderer.invoke(IPC.GET_SCREENSHOT_QUEUE),
   getTeams: () => ipcRenderer.invoke(IPC.GET_TEAMS),
   getProjects: () => ipcRenderer.invoke(IPC.GET_PROJECTS),
   getWorkflowStates: (teamId: string) => ipcRenderer.invoke(IPC.GET_WORKFLOW_STATES, teamId),
@@ -18,6 +19,10 @@ contextBridge.exposeInMainWorld('api', {
   setEnabled: (enabled: boolean) => ipcRenderer.invoke(IPC.SET_ENABLED, enabled),
   getHotkey: () => ipcRenderer.invoke(IPC.GET_HOTKEY),
   setHotkey: (hotkey: string) => ipcRenderer.invoke(IPC.SET_HOTKEY, hotkey),
+  getCollectHotkey: () => ipcRenderer.invoke(IPC.GET_COLLECT_HOTKEY),
+  setCollectHotkey: (hotkey: string) => ipcRenderer.invoke(IPC.SET_COLLECT_HOTKEY, hotkey),
+  getOpenQueueHotkey: () => ipcRenderer.invoke(IPC.GET_OPEN_QUEUE_HOTKEY),
+  setOpenQueueHotkey: (hotkey: string) => ipcRenderer.invoke(IPC.SET_OPEN_QUEUE_HOTKEY, hotkey),
   openSettings: () => ipcRenderer.invoke(IPC.OPEN_SETTINGS),
   closeWindow: () => ipcRenderer.invoke(IPC.CLOSE_WINDOW),
   getRecentSelections: () => ipcRenderer.invoke(IPC.GET_RECENT_SELECTIONS),

@@ -1,79 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Check, Keyboard } from 'lucide-react';
 import { INPUT_CLASS, BACK_LINK_CLASS } from '../utils/styles';
+import { formatHotkeyForDisplay, keyEventToAccelerator } from '../utils/hotkey';
 
 interface SettingsViewProps {
   readonly onBack?: () => void;
   readonly onClose?: () => void;
 }
 
-const IS_MAC = navigator.userAgent.includes('Mac');
-
-function formatHotkeyForDisplay(accelerator: string): string {
-  return accelerator
-    .replace('CommandOrControl', IS_MAC ? 'Cmd' : 'Ctrl')
-    .replace('Command', 'Cmd')
-    .replace('Control', 'Ctrl')
-    .replace('Shift', 'Shift')
-    .replace('Alt', 'Alt')
-    .replace('Option', 'Alt')
-    .replace(/\+/g, ' + ');
+interface HotkeyRecorderProps {
+  readonly label: string;
+  readonly description: string;
+  readonly value: string;
+  readonly defaultValue: string;
+  readonly onSave: (hotkey: string) => Promise<void>;
 }
 
-function keyEventToAccelerator(e: KeyboardEvent): string | null {
-  const parts: string[] = [];
-
-  if (e.metaKey) parts.push('CommandOrControl');
-  if (e.ctrlKey && !e.metaKey) parts.push('CommandOrControl');
-  if (e.altKey) parts.push('Alt');
-  if (e.shiftKey) parts.push('Shift');
-
-  const key = e.key;
-  if (['Meta', 'Control', 'Alt', 'Shift'].includes(key)) return null;
-
-  if (key.length === 1) {
-    parts.push(key.toUpperCase());
-  } else {
-    const keyMap: Record<string, string> = {
-      ArrowUp: 'Up', ArrowDown: 'Down', ArrowLeft: 'Left', ArrowRight: 'Right',
-      Backspace: 'Backspace', Delete: 'Delete', Enter: 'Return', Escape: 'Escape',
-      Tab: 'Tab', ' ': 'Space',
-    };
-    const mapped = keyMap[key] ?? key;
-    parts.push(mapped);
-  }
-
-  if (parts.length < 2) return null;
-
-  return parts.join('+');
-}
-
-export function SettingsView({ onBack, onClose }: SettingsViewProps) {
-  const [apiKey, setApiKey] = useState('');
-  const [maskedKey, setMaskedKey] = useState('');
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [hotkey, setHotkey] = useState('');
+function HotkeyRecorder({ label, description, value, defaultValue, onSave }: HotkeyRecorderProps) {
   const [recording, setRecording] = useState(false);
-  const [pendingHotkey, setPendingHotkey] = useState<string | null>(null);
-
-  const hasKey = maskedKey.length > 0;
-
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      const [keyResult, hotkeyResult] = await Promise.all([
-        window.api.getApiKey(),
-        window.api.getHotkey(),
-      ]);
-      if (cancelled) return;
-      if (keyResult.success && keyResult.data) setMaskedKey(keyResult.data);
-      if (hotkeyResult.success && hotkeyResult.data) setHotkey(hotkeyResult.data);
-    }
-    load();
-    return () => { cancelled = true; };
-  }, []);
+  const [pending, setPending] = useState<string | null>(null);
 
   useEffect(() => {
     if (!recording) return;
@@ -84,13 +29,13 @@ export function SettingsView({ onBack, onClose }: SettingsViewProps) {
 
       if (e.key === 'Escape') {
         setRecording(false);
-        setPendingHotkey(null);
+        setPending(null);
         return;
       }
 
       const accelerator = keyEventToAccelerator(e);
       if (accelerator) {
-        setPendingHotkey(accelerator);
+        setPending(accelerator);
         setRecording(false);
       }
     }
@@ -99,14 +44,112 @@ export function SettingsView({ onBack, onClose }: SettingsViewProps) {
     return () => window.removeEventListener('keydown', onKeyDown, true);
   }, [recording]);
 
-  async function saveHotkey() {
-    if (!pendingHotkey) return;
-    const result = await window.api.setHotkey(pendingHotkey);
-    if (result.success) {
-      setHotkey(pendingHotkey);
-      setPendingHotkey(null);
-    }
+  async function handleSave() {
+    if (!pending) return;
+    await onSave(pending);
+    setPending(null);
   }
+
+  const displayValue = formatHotkeyForDisplay(pending ?? value);
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-medium text-content-secondary">{label}</label>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            if (recording) { setRecording(false); }
+            else { setPending(null); setRecording(true); }
+          }}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm transition-colors ${
+            recording
+              ? 'bg-linear-brand/10 border-linear-brand text-content animate-pulse'
+              : 'bg-surface-input border-border text-content hover:border-border-hover'
+          }`}
+        >
+          <Keyboard className="w-3.5 h-3.5 text-content-muted" />
+          {recording ? 'Press keys...' : displayValue}
+          {!recording && !pending && value === defaultValue && (
+            <span className="text-[10px] text-content-ghost">default</span>
+          )}
+        </button>
+
+        {pending && !recording && (
+          <>
+            <button
+              type="button"
+              onClick={handleSave}
+              className="px-2 py-1 bg-linear-brand text-white rounded-md text-xs font-medium hover:bg-linear-brand-hover transition-colors"
+            >
+              Apply
+            </button>
+            <button
+              type="button"
+              onClick={() => setPending(null)}
+              className="px-2 py-1 text-content-ghost text-xs hover:text-content transition-colors"
+            >
+              Cancel
+            </button>
+          </>
+        )}
+
+        {!pending && !recording && (
+          <>
+            <button
+              type="button"
+              onClick={() => setRecording(true)}
+              className="text-xs text-content-ghost hover:text-content transition-colors"
+            >
+              Change
+            </button>
+            {value !== defaultValue && (
+              <button
+                type="button"
+                onClick={() => onSave(defaultValue)}
+                className="text-xs text-content-ghost hover:text-content transition-colors"
+              >
+                Reset
+              </button>
+            )}
+          </>
+        )}
+      </div>
+      <p className="text-[11px] text-content-ghost">{description}</p>
+    </div>
+  );
+}
+
+export function SettingsView({ onBack, onClose }: SettingsViewProps) {
+  const [apiKey, setApiKey] = useState('');
+  const [maskedKey, setMaskedKey] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [hotkey, setHotkey] = useState('');
+  const [collectHotkey, setCollectHotkey] = useState('');
+  const [openQueueHotkey, setOpenQueueHotkey] = useState('');
+
+  const hasKey = maskedKey.length > 0;
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const [keyResult, hotkeyResult, collectResult, openQueueResult] = await Promise.all([
+        window.api.getApiKey(),
+        window.api.getHotkey(),
+        window.api.getCollectHotkey(),
+        window.api.getOpenQueueHotkey(),
+      ]);
+      if (cancelled) return;
+      if (keyResult.success && keyResult.data) setMaskedKey(keyResult.data);
+      if (hotkeyResult.success && hotkeyResult.data) setHotkey(hotkeyResult.data);
+      if (collectResult.success && collectResult.data) setCollectHotkey(collectResult.data);
+      if (openQueueResult.success && openQueueResult.data) setOpenQueueHotkey(openQueueResult.data);
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -147,12 +190,8 @@ export function SettingsView({ onBack, onClose }: SettingsViewProps) {
     </button>
   );
 
-  const displayHotkey = pendingHotkey
-    ? formatHotkeyForDisplay(pendingHotkey)
-    : formatHotkeyForDisplay(hotkey);
-
   return (
-    <div className="flex flex-col gap-4 p-5">
+    <div className="flex flex-col gap-4 p-5 overflow-y-auto h-full">
       <div className="flex items-center gap-2">
         {onBack && (
           <button type="button" onClick={onBack} className={BACK_LINK_CLASS}>
@@ -231,66 +270,40 @@ export function SettingsView({ onBack, onClose }: SettingsViewProps) {
         )}
       </div>
 
-      {/* Hotkey */}
-      <div className="border-t border-border pt-3 flex flex-col gap-2">
-        <label className="block text-xs font-medium text-content-secondary">
-          Screenshot Hotkey
-        </label>
+      {/* Hotkeys */}
+      <div className="border-t border-border pt-3 flex flex-col gap-3">
+        <HotkeyRecorder
+          label="Capture Screenshot"
+          description="Takes a screenshot and opens the issue creation form."
+          value={hotkey}
+          defaultValue="CommandOrControl+Shift+L"
+          onSave={async (h) => {
+            const result = await window.api.setHotkey(h);
+            if (result.success) setHotkey(h);
+          }}
+        />
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              if (recording) {
-                setRecording(false);
-              } else {
-                setPendingHotkey(null);
-                setRecording(true);
-              }
-            }}
-            className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm transition-colors ${
-              recording
-                ? 'bg-linear-brand/10 border-linear-brand text-content animate-pulse'
-                : 'bg-surface-input border-border text-content hover:border-border-hover'
-            }`}
-          >
-            <Keyboard className="w-4 h-4 text-content-muted" />
-            {recording ? 'Press a key combination...' : displayHotkey}
-          </button>
+        <HotkeyRecorder
+          label="Collect Screenshot"
+          description="Takes a screenshot and adds it to the queue without opening the form."
+          value={collectHotkey}
+          defaultValue="Alt+CommandOrControl+Shift+L"
+          onSave={async (h) => {
+            const result = await window.api.setCollectHotkey(h);
+            if (result.success) setCollectHotkey(h);
+          }}
+        />
 
-          {pendingHotkey && !recording && (
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={saveHotkey}
-                className="px-2.5 py-1.5 bg-linear-brand text-white rounded-md text-xs font-medium hover:bg-linear-brand-hover transition-colors"
-              >
-                Apply
-              </button>
-              <button
-                type="button"
-                onClick={() => setPendingHotkey(null)}
-                className="px-2.5 py-1.5 text-content-ghost text-xs hover:text-content transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-
-          {!pendingHotkey && !recording && (
-            <button
-              type="button"
-              onClick={() => setRecording(true)}
-              className="text-xs text-content-ghost hover:text-content transition-colors"
-            >
-              Change
-            </button>
-          )}
-        </div>
-
-        <p className="text-xs text-content-ghost">
-          Click the hotkey, then press your desired key combination.
-        </p>
+        <HotkeyRecorder
+          label="Open Queued Issue"
+          description="Opens the issue creation form with all collected screenshots attached."
+          value={openQueueHotkey}
+          defaultValue="CommandOrControl+Shift+Return"
+          onSave={async (h) => {
+            const result = await window.api.setOpenQueueHotkey(h);
+            if (result.success) setOpenQueueHotkey(h);
+          }}
+        />
       </div>
     </div>
   );

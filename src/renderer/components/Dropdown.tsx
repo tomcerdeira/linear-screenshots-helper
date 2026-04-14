@@ -60,7 +60,7 @@ function Avatar({ url, name }: { readonly url?: string | null; readonly name: st
   }
 
   return (
-    <span className="shrink-0 w-[20px] h-[20px] rounded-full bg-[#3b3b40] flex items-center justify-center text-[9px] font-medium text-[#9b9ba4]">
+    <span className="shrink-0 w-[20px] h-[20px] rounded-full bg-border-subtle flex items-center justify-center text-[9px] font-medium text-content-secondary">
       {initials}
     </span>
   );
@@ -223,24 +223,24 @@ export function Dropdown({
   const defaultTrigger = (
     <span className={[
       'w-full flex items-center justify-between gap-2 px-3 py-[7px] rounded-md text-sm text-left transition-all duration-100',
-      'bg-[#2c2c30] border',
+      'bg-surface-hover border',
       open
-        ? 'border-[#5e6ad2]/70 ring-1 ring-[#5e6ad2]/30'
-        : 'border-[#3b3b40] hover:border-[#4a4a52]',
+        ? 'border-linear-brand/70 ring-1 ring-linear-brand/30'
+        : 'border-border-subtle hover:border-border-hover',
       disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer',
     ].join(' ')}>
       {selected ? (
-        <span className="flex items-center gap-2 text-[#e2e2ea] truncate min-w-0">
+        <span className="flex items-center gap-2 text-content truncate min-w-0">
           <EmojiIcon icon={selected.icon} />
           <span className="truncate">{selected.label}</span>
           {selected.secondary && (
-            <span className="text-[#6f6f78] text-xs shrink-0">{selected.secondary}</span>
+            <span className="text-content-muted text-xs shrink-0">{selected.secondary}</span>
           )}
         </span>
       ) : (
-        <span className="text-[#6f6f78]">{disabled ? 'Loading...' : placeholder}</span>
+        <span className="text-content-muted">{disabled ? 'Loading...' : placeholder}</span>
       )}
-      <ChevronDown className={`w-3.5 h-3.5 text-[#6f6f78] shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
+      <ChevronDown className={`w-3.5 h-3.5 text-content-muted shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
     </span>
   );
 
@@ -259,7 +259,7 @@ export function Dropdown({
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className={renderTrigger ? 'inline-flex' : 'w-full'}
+        className={renderTrigger ? 'inline-flex focus:outline-none focus-visible:ring-1 focus-visible:ring-linear-brand rounded-full' : 'w-full focus:outline-none focus-visible:ring-1 focus-visible:ring-linear-brand rounded-md'}
       >
         {renderTrigger ? renderTrigger(selected, open) : defaultTrigger}
       </button>
@@ -275,19 +275,19 @@ export function Dropdown({
             width: Math.max(position.width, panelMinWidth ?? 0),
             zIndex: 9999,
           }}
-          className="rounded-lg bg-[#232326] border border-[#3b3b40] shadow-2xl shadow-black/50 overflow-hidden animate-in"
+          className="rounded-lg bg-surface-raised border border-border-subtle shadow-2xl shadow-black/50 overflow-hidden animate-in"
         >
           {searchable && (
             <div className="px-2 pt-2 pb-1.5">
-              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-[#2c2c30] border border-[#3b3b40]">
-                <Search className="w-3.5 h-3.5 text-[#6f6f78] shrink-0" />
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-surface-hover border border-border-subtle">
+                <Search className="w-3.5 h-3.5 text-content-muted shrink-0" />
                 <input
                   ref={searchRef}
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={searchPlaceholder}
-                  className="flex-1 bg-transparent border-none text-[13px] text-[#e2e2ea] placeholder-[#6f6f78] focus:outline-none p-0 m-0 ring-0 focus:ring-0"
+                  className="flex-1 bg-transparent border-none text-[13px] text-content placeholder:text-content-muted focus:outline-none p-0 m-0 ring-0 focus:ring-0"
                 />
               </div>
             </div>
@@ -299,7 +299,7 @@ export function Dropdown({
             className="max-h-[240px] overflow-y-auto py-1 px-1"
           >
             {filtered.length === 0 && (
-              <li className="px-2 py-4 text-[13px] text-[#6f6f78] text-center">
+              <li className="px-2 py-4 text-[13px] text-content-muted text-center">
                 No results found
               </li>
             )}
@@ -312,7 +312,7 @@ export function Dropdown({
               return (
                 <React.Fragment key={option.value}>
                   {showGroup && (
-                    <li className="px-2.5 pt-2 pb-1 text-[11px] text-[#6f6f78] font-medium">
+                    <li className="px-2.5 pt-2 pb-1 text-[11px] text-content-muted font-medium">
                       {option.group}
                     </li>
                   )}
@@ -326,17 +326,17 @@ export function Dropdown({
                       className={[
                         'w-full flex items-center gap-2.5 px-2.5 py-[7px] text-[13px] text-left rounded-md transition-colors duration-75',
                         isHighlighted || isSelected
-                          ? 'bg-[#2c2c30] text-[#e2e2ea]'
-                          : 'text-[#9b9ba4] hover:bg-[#2c2c30] hover:text-[#e2e2ea]',
+                          ? 'bg-surface-hover text-content'
+                          : 'text-content-secondary hover:bg-surface-hover hover:text-content',
                       ].join(' ')}
                     >
                       <OptionIcon option={option} />
                       <span className="truncate flex-1">{option.label}</span>
                       {option.secondary && (
-                        <span className="text-[#6f6f78] text-xs shrink-0">{option.secondary}</span>
+                        <span className="text-content-muted text-xs shrink-0">{option.secondary}</span>
                       )}
                       {isSelected && (
-                        <Check className="w-3.5 h-3.5 text-[#5e6ad2] shrink-0" />
+                        <Check className="w-3.5 h-3.5 text-linear-brand shrink-0" />
                       )}
                     </button>
                   </li>

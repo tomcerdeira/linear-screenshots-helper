@@ -12,6 +12,9 @@ type TrayCallbacks = {
   readonly onToggle: (enabled: boolean) => void;
   readonly onSettings: () => void;
   readonly onCapture: () => void;
+  readonly onOpenQueue?: () => void;
+  readonly onClearQueue?: () => void;
+  readonly getQueueCount?: () => number;
 };
 
 export function createTray(callbacks: TrayCallbacks): Tray {
@@ -29,14 +32,32 @@ export function updateTrayMenu(callbacks: TrayCallbacks): void {
   if (!tray) return;
 
   const enabled = getEnabled();
+  const queueCount = callbacks.getQueueCount?.() ?? 0;
 
-  tray.setContextMenu(Menu.buildFromTemplate([
+  const menuItems: Electron.MenuItemConstructorOptions[] = [
     {
       label: 'Capture Screenshot',
       accelerator: 'CommandOrControl+Shift+L',
       click: callbacks.onCapture,
       enabled,
     },
+  ];
+
+  if (queueCount > 0) {
+    menuItems.push({
+      label: `Open Issue (${queueCount} screenshot${queueCount > 1 ? 's' : ''} queued)`,
+      click: callbacks.onOpenQueue!,
+      enabled: true,
+    });
+    menuItems.push({
+      label: 'Clear Queue',
+      click: callbacks.onClearQueue!,
+      enabled: true,
+    });
+  }
+
+  tray.setContextMenu(Menu.buildFromTemplate([
+    ...menuItems,
     { type: 'separator' },
     {
       label: enabled ? 'Disable' : 'Enable',
@@ -51,6 +72,9 @@ export function updateTrayMenu(callbacks: TrayCallbacks): void {
     { type: 'separator' },
     { label: 'Quit', click: () => app.quit() },
   ]));
+
+  // Update title to show queue count
+  tray.setTitle(queueCount > 0 ? `${queueCount}` : '');
 }
 
 function createTrayIconBuffer(): Buffer {

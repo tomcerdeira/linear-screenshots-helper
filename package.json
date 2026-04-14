@@ -64,6 +64,7 @@
   "dependencies": {
     "@linear/sdk": "^81.0.0",
     "@tiptap/extension-bubble-menu": "^3.22.3",
+    "@tiptap/extension-image": "^3.22.3",
     "@tiptap/extension-link": "^3.22.3",
     "@tiptap/extension-placeholder": "^3.22.3",
     "@tiptap/extension-underline": "^3.22.3",

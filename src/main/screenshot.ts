@@ -1,12 +1,155 @@
 import { BrowserWindow, desktopCapturer, screen } from 'electron';
 import type { ScreenshotData } from '../shared/types';
-import { buildScreenshotOverlayHtml } from './templates/screenshot-overlay';
+
+const OVERLAY_HTML = `<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    cursor: crosshair;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    background: #000;
+  }
+  #bg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+  }
+  #overlay-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 5;
+  }
+  #selection-border {
+    position: absolute;
+    border: 2px solid #5E6AD2;
+    pointer-events: none;
+    display: none;
+    z-index: 15;
+  }
+  #instructions {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px;
+    text-align: center;
+    pointer-events: none;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+    z-index: 20;
+  }
+  #size-label {
+    position: absolute;
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 11px;
+    background: rgba(0,0,0,0.6);
+    padding: 2px 6px;
+    border-radius: 4px;
+    pointer-events: none;
+    display: none;
+    z-index: 20;
+  }
+</style>
+</head>
+<body>
+<img id="bg" />
+<canvas id="overlay-canvas"></canvas>
+<div id="selection-border"></div>
+<div id="size-label"></div>
+<div id="instructions">Click and drag to select a region<br><small>Press Escape to cancel</small></div>
+<script>
+  const canvas = document.getElementById('overlay-canvas');
+  const ctx = canvas.getContext('2d');
+  const instructions = document.getElementById('instructions');
+  const selBorder = document.getElementById('selection-border');
+  const sizeLabel = document.getElementById('size-label');
+  let startX = 0, startY = 0, isDragging = false, currentRect = null;
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    drawOverlay();
+  }
+
+  function drawOverlay() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (currentRect) {
+      ctx.clearRect(currentRect.x, currentRect.y, currentRect.w, currentRect.h);
+    }
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') window.close();
+  });
+
+  document.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    instructions.style.display = 'none';
+    selBorder.style.display = 'block';
+    sizeLabel.style.display = 'block';
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const x = Math.min(e.clientX, startX);
+    const y = Math.min(e.clientY, startY);
+    const w = Math.abs(e.clientX - startX);
+    const h = Math.abs(e.clientY - startY);
+    currentRect = { x, y, w, h };
+    drawOverlay();
+    selBorder.style.left = x + 'px';
+    selBorder.style.top = y + 'px';
+    selBorder.style.width = w + 'px';
+    selBorder.style.height = h + 'px';
+    sizeLabel.textContent = w + ' \\u00d7 ' + h;
+    sizeLabel.style.left = (x + w + 8) + 'px';
+    sizeLabel.style.top = (y + h + 8) + 'px';
+  });
+
+  document.addEventListener('mouseup', (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    const x = Math.min(e.clientX, startX);
+    const y = Math.min(e.clientY, startY);
+    const w = Math.abs(e.clientX - startX);
+    const h = Math.abs(e.clientY - startY);
+    if (w < 10 || h < 10) { window.close(); return; }
+    document.title = JSON.stringify({ x, y, width: w, height: h });
+  });
+
+  window._setScreenshot = function(base64) {
+    document.getElementById('bg').src = 'data:image/jpeg;base64,' + base64;
+  };
+</script>
+</body>
+</html>`;
+
+
 
 export async function captureScreenshot(): Promise<ScreenshotData | null> {
   const cursorPoint = screen.getCursorScreenPoint();
   const activeDisplay = screen.getDisplayNearestPoint(cursorPoint);
   const { bounds, scaleFactor } = activeDisplay;
 
+  // Step 1: Capture the full screen BEFORE showing the overlay
   const sources = await desktopCapturer.getSources({
     types: ['screen'],
     thumbnailSize: {
@@ -15,14 +158,13 @@ export async function captureScreenshot(): Promise<ScreenshotData | null> {
     },
   });
 
-  if (sources.length === 0) return null;
-
-  const matchedSource = sources.find(
+  const source = sources.find(
     (s) => s.display_id === activeDisplay.id.toString(),
   ) ?? sources[0];
 
-  const fullImage = matchedSource.thumbnail;
+  if (!source) return null;
 
+  const fullImage = source.thumbnail;
   const expectedW = bounds.width * scaleFactor;
   const expectedH = bounds.height * scaleFactor;
   const capturedImage =
@@ -30,16 +172,16 @@ export async function captureScreenshot(): Promise<ScreenshotData | null> {
       ? fullImage.resize({ width: expectedW, height: expectedH })
       : fullImage;
 
-  // Convert to JPEG for smaller payload (PNG of a full retina screen can be 20MB+)
-  const jpegBuffer = capturedImage.toJPEG(80);
-  const screenshotBase64 = jpegBuffer.toString('base64');
+  const screenshotBase64 = capturedImage.toJPEG(85).toString('base64');
 
+  // Step 2: Show overlay with captured image as background
   return new Promise((resolve) => {
     const overlay = new BrowserWindow({
       x: bounds.x,
       y: bounds.y,
       width: bounds.width,
       height: bounds.height,
+      show: false,
       frame: false,
       transparent: false,
       alwaysOnTop: true,
@@ -55,53 +197,41 @@ export async function captureScreenshot(): Promise<ScreenshotData | null> {
       },
     });
 
-    // Don't use fullscreen or simpleFullscreen — they can freeze on macOS.
-    // Instead, set the window to cover the full display bounds and use kiosk-like behavior.
     overlay.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     overlay.setAlwaysOnTop(true, 'screen-saver');
-    overlay.moveTop();
+    overlay.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(OVERLAY_HTML)}`);
 
-    // Minimal HTML shell — screenshot is injected AFTER load via executeJavaScript
-    const overlayHtml = buildScreenshotOverlayHtml();
+    let resolved = false;
+    const safetyTimeout = setTimeout(() => finish(null), 30000);
 
-    overlay.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(overlayHtml)}`);
+    function finish(data: ScreenshotData | null) {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(safetyTimeout);
+      overlay.webContents.removeAllListeners('page-title-updated');
+      if (!overlay.isDestroyed()) overlay.destroy();
+      resolve(data);
+    }
 
-    // Safety timeout
-    const safetyTimeout = setTimeout(() => {
-      if (!overlay.isDestroyed()) overlay.close();
-    }, 15000);
-
-    overlay.webContents.on('did-finish-load', () => {
-      // Inject the screenshot via JS after the page has loaded
-      // This avoids embedding a huge base64 string in the URL itself
+    overlay.webContents.once('did-finish-load', () => {
+      // Inject the screenshot after HTML is ready
       overlay.webContents.executeJavaScript(
         `window._setScreenshot(${JSON.stringify(screenshotBase64)})`
-      ).catch(() => {
-        // If injection fails, close overlay
-        if (!overlay.isDestroyed()) overlay.close();
-      });
+      ).then(() => {
+        overlay.show();
+        overlay.focus();
+      }).catch(() => finish(null));
     });
 
     overlay.on('closed', () => {
-      clearTimeout(safetyTimeout);
-      resolve(null);
-    });
-
-    // Listen for blur — if user switches away, close the overlay
-    overlay.on('blur', () => {
-      // Small delay to avoid closing during initial focus settling
-      setTimeout(() => {
-        if (!overlay.isDestroyed() && !overlay.isFocused()) {
-          overlay.close();
-        }
-      }, 200);
+      if (!resolved) { resolved = true; resolve(null); }
     });
 
     overlay.webContents.on('page-title-updated', (_event, title) => {
+      if (resolved || overlay.isDestroyed()) return;
+
       try {
         const rect = JSON.parse(title);
-        overlay.close();
-
         const cropped = capturedImage.crop({
           x: Math.round(rect.x * scaleFactor),
           y: Math.round(rect.y * scaleFactor),
@@ -109,15 +239,14 @@ export async function captureScreenshot(): Promise<ScreenshotData | null> {
           height: Math.round(rect.height * scaleFactor),
         });
 
-        resolve({
+        finish({
           dataUrl: cropped.toDataURL(),
           width: rect.width,
           height: rect.height,
           timestamp: Date.now(),
         });
       } catch {
-        overlay.close();
-        resolve(null);
+        finish(null);
       }
     });
   });

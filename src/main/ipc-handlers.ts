@@ -1,21 +1,44 @@
 import { ipcMain, BrowserWindow, shell, screen } from 'electron';
 import { IPC } from '../shared/ipc-channels';
 import type { IpcResult, LinearIssueResult, CreateIssueInput, AddCommentInput, ScreenshotData, RecentSelections } from '../shared/types';
-import { getApiKey, setApiKey, getEnabled, setEnabled, getHotkey, setHotkey, getRecentSelections, saveLastTeam, saveLastProject, saveRecentTicket } from '../services/store';
+import { getApiKey, setApiKey, getEnabled, setEnabled, getHotkey, setHotkey, getCollectHotkey, setCollectHotkey, getOpenQueueHotkey, setOpenQueueHotkey, getRecentSelections, saveLastTeam, saveLastProject, saveRecentTicket } from '../services/store';
 import { resetClient } from '../services/linear-client';
 import { getTeams, getProjects, getWorkflowStates, getLabels, getMembers, searchIssues, getRecentIssues, createIssue, addCommentWithScreenshot } from '../services/linear-issues';
 import { buildToastHtml } from './templates/toast';
 
 let currentScreenshot: ScreenshotData | null = null;
+const screenshotQueue: ScreenshotData[] = [];
 
 export function setCurrentScreenshot(data: ScreenshotData | null): void {
   currentScreenshot = data;
+}
+
+export function addToScreenshotQueue(data: ScreenshotData): void {
+  screenshotQueue.push(data);
+}
+
+export function getScreenshotQueueCount(): number {
+  return screenshotQueue.length;
+}
+
+export function flushScreenshotQueue(): ScreenshotData[] {
+  const items = [...screenshotQueue];
+  screenshotQueue.length = 0;
+  return items;
 }
 
 let onHotkeyChanged: ((hotkey: string) => void) | null = null;
 
 export function registerIpcHandlers(callbacks?: { onHotkeyChanged?: (hotkey: string) => void }): void {
   onHotkeyChanged = callbacks?.onHotkeyChanged ?? null;
+  ipcMain.handle(IPC.GET_SCREENSHOT_QUEUE, (): IpcResult<ScreenshotData[]> => {
+    return { success: true, data: flushScreenshotQueue() };
+  });
+
+  ipcMain.handle(IPC.GET_QUEUE_COUNT, (): IpcResult<number> => {
+    return { success: true, data: screenshotQueue.length };
+  });
+
   ipcMain.handle(IPC.GET_SCREENSHOT, (): IpcResult<ScreenshotData> => {
     if (!currentScreenshot) {
       return { success: false, error: 'No screenshot available' };
@@ -63,6 +86,26 @@ export function registerIpcHandlers(callbacks?: { onHotkeyChanged?: (hotkey: str
 
   ipcMain.handle(IPC.SET_HOTKEY, (_e, hotkey: string): IpcResult => {
     setHotkey(hotkey);
+    if (onHotkeyChanged) onHotkeyChanged(hotkey);
+    return { success: true };
+  });
+
+  ipcMain.handle(IPC.GET_COLLECT_HOTKEY, (): IpcResult<string> => {
+    return { success: true, data: getCollectHotkey() };
+  });
+
+  ipcMain.handle(IPC.SET_COLLECT_HOTKEY, (_e, hotkey: string): IpcResult => {
+    setCollectHotkey(hotkey);
+    if (onHotkeyChanged) onHotkeyChanged(hotkey);
+    return { success: true };
+  });
+
+  ipcMain.handle(IPC.GET_OPEN_QUEUE_HOTKEY, (): IpcResult<string> => {
+    return { success: true, data: getOpenQueueHotkey() };
+  });
+
+  ipcMain.handle(IPC.SET_OPEN_QUEUE_HOTKEY, (_e, hotkey: string): IpcResult => {
+    setOpenQueueHotkey(hotkey);
     if (onHotkeyChanged) onHotkeyChanged(hotkey);
     return { success: true };
   });
@@ -122,7 +165,7 @@ export function registerIpcHandlers(callbacks?: { onHotkeyChanged?: (hotkey: str
   });
 }
 
-function showToastWindow(title: string, body: string, url: string): void {
+export function showToastWindow(title: string, body: string, url: string): void {
   const TOAST_WIDTH = 360;
   const TOAST_HEIGHT = 96;
   const MARGIN = 16;

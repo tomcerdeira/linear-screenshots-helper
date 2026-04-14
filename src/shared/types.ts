@@ -67,6 +67,7 @@ export interface CreateIssueInput {
   readonly title: string;
   readonly description: string;
   readonly screenshotDataUrl: string;
+  readonly additionalScreenshotDataUrls?: string[];
 }
 
 export interface AddCommentInput {
