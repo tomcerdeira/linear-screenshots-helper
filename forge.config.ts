@@ -17,6 +17,16 @@ const config: ForgeConfig = {
     icon: './assets/icon',
     appBundleId: 'com.tomcerdeira.linear-screenshot',
     appCategoryType: 'public.app-category.productivity',
+    osxSign: {},
+    ...(process.env.APPLE_ID && process.env.APPLE_ID_PASSWORD && process.env.APPLE_TEAM_ID
+      ? {
+          osxNotarize: {
+            appleId: process.env.APPLE_ID,
+            appleIdPassword: process.env.APPLE_ID_PASSWORD,
+            teamId: process.env.APPLE_TEAM_ID,
+          },
+        }
+      : {}),
   },
   rebuildConfig: {},
   makers: [
