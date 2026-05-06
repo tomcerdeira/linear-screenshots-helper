@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { m, type Variants } from "framer-motion";
 import type { Scenario } from "./PopupPreview";
-import { DMG_DOWNLOAD_URL, REPO_URL } from "@/lib/links";
+import { DMG_ARM64_URL, DMG_X64_URL, REPO_URL } from "@/lib/links";
 
 function hashIssueNumber(title: string): number {
   let hash = 0;
@@ -181,7 +181,7 @@ export function DownloadConfirm({
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <a
-            href={DMG_DOWNLOAD_URL}
+            href={DMG_ARM64_URL}
             download
             className="flex-1 inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg text-sm font-medium text-white transition-[transform,box-shadow] duration-200 hover:scale-[1.02] active:scale-[0.98]"
             style={{
@@ -208,6 +208,12 @@ export function DownloadConfirm({
             GitHub
           </a>
         </div>
+        <p className="text-[11px] text-center text-muted-foreground">
+          Apple Silicon · {" "}
+          <a href={DMG_X64_URL} download className="underline hover:text-foreground transition-colors">
+            Intel Mac?
+          </a>
+        </p>
         <button
           type="button"
           onClick={onClose}

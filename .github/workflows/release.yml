@@ -64,13 +64,29 @@ jobs:
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
+      # MakerDMG outputs a non-architecture-suffixed `LinearScreenshot.dmg`,
+      # so when both arm64 and x64 jobs upload to the same release, one
+      # overwrites the other. Stage stable, arch-suffixed names here so the
+      # release ends up with both DMGs (and matching ZIPs for consistency).
+      - name: Stage release artifacts with arch suffix
+        run: |
+          set -euo pipefail
+          mkdir -p staged
+          DMG=$(find out/make -type f -name '*.dmg' | head -n 1)
+          if [ -n "$DMG" ]; then
+            cp "$DMG" "staged/LinearScreenshot-${{ matrix.arch }}.dmg"
+          fi
+          ZIP=$(find out/make -type f -name '*.zip' | head -n 1)
+          if [ -n "$ZIP" ]; then
+            cp "$ZIP" "staged/LinearScreenshot-${{ matrix.arch }}.zip"
+          fi
+          ls -la staged
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.os }}-${{ matrix.arch }}
-          path: |
-            out/make/**/*.zip
-            out/make/**/*.dmg
+          path: staged/*
           if-no-files-found: warn
 
   release:

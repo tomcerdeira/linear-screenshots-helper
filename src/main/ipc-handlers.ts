@@ -244,7 +244,11 @@ export function showToastWindow(title: string, body: string, url: string): void 
 const GITHUB_REPO = 'tomcerdeira/linear-screenshots-helper';
 
 function compareVersions(current: string, latest: string): boolean {
-  const parse = (v: string) => v.replace(/^v/, '').split('.').map(Number);
+  const parse = (v: string): number[] =>
+    v.replace(/^v/, '').split(/[.\-+]/).map((s) => {
+      const n = parseInt(s, 10);
+      return Number.isFinite(n) ? n : 0;
+    });
   const c = parse(current);
   const l = parse(latest);
   for (let i = 0; i < 3; i++) {
@@ -255,16 +259,54 @@ function compareVersions(current: string, latest: string): boolean {
 }
 
 async function checkForUpdates(): Promise<UpdateInfo> {
-  const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  let res: Response;
+  try {
+    res = await fetch(
+      `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`,
+      { signal: controller.signal, headers: { 'Accept': 'application/vnd.github+json' } },
+    );
+  } catch (err) {
+    clearTimeout(timeout);
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('Update check timed out — please try again');
+    }
+    throw new Error('Could not reach GitHub');
+  }
+  clearTimeout(timeout);
+
+  if (res.status === 404) {
+    // No published (non-draft, non-prerelease) release exists yet.
+    const currentVersion = app.getVersion();
+    return {
+      hasUpdate: false,
+      currentVersion,
+      latestVersion: currentVersion,
+      downloadUrl: `https://github.com/${GITHUB_REPO}/releases`,
+      releaseUrl: `https://github.com/${GITHUB_REPO}/releases`,
+    };
+  }
   if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
 
   const release = await res.json() as { tag_name: string; html_url: string; assets: { browser_download_url: string; name: string }[] };
   const latestVersion = release.tag_name.replace(/^v/, '');
   const currentVersion = app.getVersion();
 
-  const dmgAsset = release.assets.find((a: { name: string }) => a.name.endsWith('.dmg'));
-  const zipAsset = release.assets.find((a: { name: string }) => a.name.endsWith('.zip'));
-  const downloadUrl = dmgAsset?.browser_download_url ?? zipAsset?.browser_download_url ?? release.html_url;
+  // Prefer a DMG matching the current architecture (arm64 / x64). Fall back
+  // to any DMG, then any ZIP, then the release page.
+  const arch = process.arch;
+  const archDmg = release.assets.find((a) => a.name.endsWith('.dmg') && a.name.includes(arch));
+  const anyDmg = release.assets.find((a) => a.name.endsWith('.dmg'));
+  const archZip = release.assets.find((a) => a.name.endsWith('.zip') && a.name.includes(arch));
+  const anyZip = release.assets.find((a) => a.name.endsWith('.zip'));
+  const downloadUrl =
+    archDmg?.browser_download_url
+    ?? anyDmg?.browser_download_url
+    ?? archZip?.browser_download_url
+    ?? anyZip?.browser_download_url
+    ?? release.html_url;
 
   return {
     hasUpdate: compareVersions(currentVersion, latestVersion),
