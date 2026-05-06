@@ -1,3 +1,5 @@
+export const SITE_URL = "https://www.linear.tickets";
+
 export const REPO_URL = "https://github.com/tomcerdeira/linear-screenshots-helper";
 
 // GitHub permanently redirects /releases/latest/download/<filename> to whatever
