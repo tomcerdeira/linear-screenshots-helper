@@ -6,6 +6,7 @@
   "main": ".vite/build/index.js",
   "scripts": {
     "start": "electron-forge start",
+    "start:fresh": "node -e \"const fs=require('fs'),p=require('os').homedir()+'/Library/Application Support/Linear Screenshot/config.json';try{const c=JSON.parse(fs.readFileSync(p));c.onboardingComplete=false;fs.writeFileSync(p,JSON.stringify(c,null,2))}catch{}\" && electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",

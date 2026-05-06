@@ -34,6 +34,8 @@ interface ElectronApi {
   checkForUpdates(): Promise<IpcResult<UpdateInfo>>;
   getAppVersion(): Promise<IpcResult<string>>;
   openExternal(url: string): Promise<IpcResult>;
+  getOnboardingComplete(): Promise<IpcResult<boolean>>;
+  setOnboardingComplete(complete: boolean): Promise<IpcResult>;
 }
 
 declare global {

@@ -1,7 +1,7 @@
 import { ipcMain, BrowserWindow, shell, screen, app } from 'electron';
 import { IPC } from '../shared/ipc-channels';
 import type { IpcResult, LinearIssueResult, CreateIssueInput, AddCommentInput, ScreenshotData, RecentSelections, UpdateInfo } from '../shared/types';
-import { getApiKey, setApiKey, getEnabled, setEnabled, getHotkey, setHotkey, getCollectHotkey, setCollectHotkey, getOpenQueueHotkey, setOpenQueueHotkey, getRecentSelections, saveLastTeam, saveLastProject, saveRecentTicket } from '../services/store';
+import { getApiKey, setApiKey, getEnabled, setEnabled, getHotkey, setHotkey, getCollectHotkey, setCollectHotkey, getOpenQueueHotkey, setOpenQueueHotkey, getRecentSelections, saveLastTeam, saveLastProject, saveRecentTicket, getOnboardingComplete, setOnboardingComplete } from '../services/store';
 import { resetClient } from '../services/linear-client';
 import { getTeams, getProjects, getWorkflowStates, getLabels, getMembers, searchIssues, getRecentIssues, createIssue, addCommentWithScreenshot } from '../services/linear-issues';
 import { buildToastHtml } from './templates/toast';
@@ -172,6 +172,15 @@ export function registerIpcHandlers(callbacks?: { onHotkeyChanged?: (hotkey: str
 
   ipcMain.handle(IPC.OPEN_EXTERNAL, (_e, url: string): IpcResult => {
     shell.openExternal(url);
+    return { success: true };
+  });
+
+  ipcMain.handle(IPC.GET_ONBOARDING_COMPLETE, (): IpcResult<boolean> => {
+    return { success: true, data: getOnboardingComplete() };
+  });
+
+  ipcMain.handle(IPC.SET_ONBOARDING_COMPLETE, (_e, complete: boolean): IpcResult => {
+    setOnboardingComplete(complete);
     return { success: true };
   });
 }

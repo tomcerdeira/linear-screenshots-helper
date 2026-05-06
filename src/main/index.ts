@@ -5,7 +5,7 @@ import { captureScreenshot } from './screenshot';
 import { createPopupWindow } from './windows';
 import { registerIpcHandlers, setCurrentScreenshot, addToScreenshotQueue, getScreenshotQueueCount, flushScreenshotQueue, showToastWindow } from './ipc-handlers';
 import { hasApiKey } from '../services/linear-client';
-import { getEnabled, getHotkey, getCollectHotkey, getOpenQueueHotkey, getRecentSelections } from '../services/store';
+import { getEnabled, getHotkey, getCollectHotkey, getOpenQueueHotkey, getRecentSelections, getOnboardingComplete } from '../services/store';
 import { showOverlay, closeOverlay } from './overlay';
 import { getTeams, getProjects, getWorkflowStates, getLabels, getMembers } from '../services/linear-issues';
 
@@ -166,6 +166,10 @@ app.on('ready', () => {
   createTray(trayCallbacks);
   if (getEnabled()) registerHotkeys();
   prefetchData();
+
+  if (!getOnboardingComplete()) {
+    openSettings();
+  }
 });
 
 function prefetchData(): void {

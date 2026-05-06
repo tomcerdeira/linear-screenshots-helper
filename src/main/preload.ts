@@ -35,4 +35,6 @@ contextBridge.exposeInMainWorld('api', {
   checkForUpdates: () => ipcRenderer.invoke(IPC.CHECK_FOR_UPDATES),
   getAppVersion: () => ipcRenderer.invoke(IPC.GET_APP_VERSION),
   openExternal: (url: string) => ipcRenderer.invoke(IPC.OPEN_EXTERNAL, url),
+  getOnboardingComplete: () => ipcRenderer.invoke(IPC.GET_ONBOARDING_COMPLETE),
+  setOnboardingComplete: (complete: boolean) => ipcRenderer.invoke(IPC.SET_ONBOARDING_COMPLETE, complete),
 });

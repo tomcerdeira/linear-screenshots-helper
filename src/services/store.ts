@@ -20,6 +20,7 @@ interface StoreSchema {
   lastTeamId: string;
   lastProjectId: string;
   recentTickets: StoredTicket[];
+  onboardingComplete: boolean;
 }
 
 const store = new Store<StoreSchema>({
@@ -32,6 +33,7 @@ const store = new Store<StoreSchema>({
     lastTeamId: '',
     lastProjectId: '',
     recentTickets: [],
+    onboardingComplete: false,
   },
 });
 
@@ -115,4 +117,12 @@ export function saveRecentTicket(ticket: LinearIssueResult): void {
   const filtered = current.filter((t) => t.id !== ticket.id);
   const updated = [ticket, ...filtered].slice(0, MAX_RECENT_TICKETS);
   store.set('recentTickets', updated);
+}
+
+export function getOnboardingComplete(): boolean {
+  return store.get('onboardingComplete');
+}
+
+export function setOnboardingComplete(complete: boolean): void {
+  store.set('onboardingComplete', complete);
 }

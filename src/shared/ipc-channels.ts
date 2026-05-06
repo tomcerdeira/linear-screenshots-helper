@@ -33,4 +33,6 @@ export const IPC = {
   CHECK_FOR_UPDATES: 'app:checkForUpdates',
   GET_APP_VERSION: 'app:getVersion',
   OPEN_EXTERNAL: 'app:openExternal',
+  GET_ONBOARDING_COMPLETE: 'store:getOnboardingComplete',
+  SET_ONBOARDING_COMPLETE: 'store:setOnboardingComplete',
 } as const;

@@ -3,6 +3,7 @@ import { useScreenshot } from './hooks/useScreenshot';
 import { CreateIssueView } from './components/CreateIssueView';
 import { ExistingTicketSearch } from './components/ExistingTicketSearch';
 import { SettingsView } from './components/SettingsView';
+import { WelcomeView } from './components/WelcomeView';
 import type { ScreenshotData } from '../shared/types';
 
 type View = 'create' | 'existing' | 'settings';
@@ -12,6 +13,7 @@ export function App() {
   const [view, setView] = useState<View>('create');
   const [queuedScreenshots, setQueuedScreenshots] = useState<ScreenshotData[]>([]);
   const [isQueueMode, setIsQueueMode] = useState(false);
+  const [showWelcome, setShowWelcome] = useState<boolean | null>(null);
 
   useEffect(() => {
     async function checkQueue() {
@@ -22,6 +24,14 @@ export function App() {
       }
     }
     checkQueue();
+  }, []);
+
+  useEffect(() => {
+    async function checkOnboarding() {
+      const result = await window.api.getOnboardingComplete();
+      setShowWelcome(result.success && result.data === false);
+    }
+    checkOnboarding();
   }, []);
 
   function handleClose() {
@@ -70,6 +80,13 @@ export function App() {
 
   // Single screenshot mode
   if (error || !screenshot) {
+    if (showWelcome) {
+      return (
+        <Shell>
+          <WelcomeView onComplete={() => setShowWelcome(false)} />
+        </Shell>
+      );
+    }
     return (
       <Shell>
         <SettingsView onClose={handleClose} />
