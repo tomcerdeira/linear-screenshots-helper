@@ -30,4 +30,7 @@ export const IPC = {
   SHOW_TOAST: 'app:showToast',
   CREATE_ISSUE_BG: 'linear:createIssueBg',
   ADD_COMMENT_BG: 'linear:addCommentBg',
+  CHECK_FOR_UPDATES: 'app:checkForUpdates',
+  GET_APP_VERSION: 'app:getVersion',
+  OPEN_EXTERNAL: 'app:openExternal',
 } as const;

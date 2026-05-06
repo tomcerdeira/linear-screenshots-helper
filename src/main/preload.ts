@@ -32,4 +32,7 @@ contextBridge.exposeInMainWorld('api', {
   showToast: (data: { title: string; body: string; url: string }) => ipcRenderer.invoke(IPC.SHOW_TOAST, data),
   createIssueBg: (input: unknown) => ipcRenderer.invoke(IPC.CREATE_ISSUE_BG, input),
   addCommentBg: (input: unknown) => ipcRenderer.invoke(IPC.ADD_COMMENT_BG, input),
+  checkForUpdates: () => ipcRenderer.invoke(IPC.CHECK_FOR_UPDATES),
+  getAppVersion: () => ipcRenderer.invoke(IPC.GET_APP_VERSION),
+  openExternal: (url: string) => ipcRenderer.invoke(IPC.OPEN_EXTERNAL, url),
 });

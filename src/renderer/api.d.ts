@@ -1,4 +1,4 @@
-import type { IpcResult, ScreenshotData, LinearTeam, LinearProject, LinearWorkflowState, LinearLabel, LinearUser, LinearIssueResult, CreateIssueInput, AddCommentInput, AddCommentBgInput, RecentSelections } from '../shared/types';
+import type { IpcResult, ScreenshotData, LinearTeam, LinearProject, LinearWorkflowState, LinearLabel, LinearUser, LinearIssueResult, CreateIssueInput, AddCommentInput, AddCommentBgInput, RecentSelections, UpdateInfo } from '../shared/types';
 
 interface ElectronApi {
   getScreenshot(): Promise<IpcResult<ScreenshotData>>;
@@ -31,6 +31,9 @@ interface ElectronApi {
   showToast(data: { title: string; body: string; url: string }): Promise<IpcResult>;
   createIssueBg(input: CreateIssueInput): Promise<IpcResult>;
   addCommentBg(input: AddCommentBgInput): Promise<IpcResult>;
+  checkForUpdates(): Promise<IpcResult<UpdateInfo>>;
+  getAppVersion(): Promise<IpcResult<string>>;
+  openExternal(url: string): Promise<IpcResult>;
 }
 
 declare global {

@@ -87,3 +87,11 @@ export interface RecentSelections {
   readonly lastProjectId: string;
   readonly recentTickets: readonly LinearIssueResult[];
 }
+
+export interface UpdateInfo {
+  readonly hasUpdate: boolean;
+  readonly currentVersion: string;
+  readonly latestVersion: string;
+  readonly downloadUrl: string;
+  readonly releaseUrl: string;
+}

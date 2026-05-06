@@ -1,6 +1,6 @@
-import { ipcMain, BrowserWindow, shell, screen } from 'electron';
+import { ipcMain, BrowserWindow, shell, screen, app } from 'electron';
 import { IPC } from '../shared/ipc-channels';
-import type { IpcResult, LinearIssueResult, CreateIssueInput, AddCommentInput, ScreenshotData, RecentSelections } from '../shared/types';
+import type { IpcResult, LinearIssueResult, CreateIssueInput, AddCommentInput, ScreenshotData, RecentSelections, UpdateInfo } from '../shared/types';
 import { getApiKey, setApiKey, getEnabled, setEnabled, getHotkey, setHotkey, getCollectHotkey, setCollectHotkey, getOpenQueueHotkey, setOpenQueueHotkey, getRecentSelections, saveLastTeam, saveLastProject, saveRecentTicket } from '../services/store';
 import { resetClient } from '../services/linear-client';
 import { getTeams, getProjects, getWorkflowStates, getLabels, getMembers, searchIssues, getRecentIssues, createIssue, addCommentWithScreenshot } from '../services/linear-issues';
@@ -163,6 +163,17 @@ export function registerIpcHandlers(callbacks?: { onHotkeyChanged?: (hotkey: str
     });
     return { success: true };
   });
+
+  ipcMain.handle(IPC.GET_APP_VERSION, (): IpcResult<string> => {
+    return { success: true, data: app.getVersion() };
+  });
+
+  ipcMain.handle(IPC.CHECK_FOR_UPDATES, () => wrapAsync(() => checkForUpdates()));
+
+  ipcMain.handle(IPC.OPEN_EXTERNAL, (_e, url: string): IpcResult => {
+    shell.openExternal(url);
+    return { success: true };
+  });
 }
 
 export function showToastWindow(title: string, body: string, url: string): void {
@@ -209,6 +220,40 @@ export function showToastWindow(title: string, body: string, url: string): void 
   setTimeout(() => {
     if (!toast.isDestroyed()) toast.close();
   }, DURATION + 500);
+}
+
+const GITHUB_REPO = 'tomcerdeira/linear-screenshots-helper';
+
+function compareVersions(current: string, latest: string): boolean {
+  const parse = (v: string) => v.replace(/^v/, '').split('.').map(Number);
+  const c = parse(current);
+  const l = parse(latest);
+  for (let i = 0; i < 3; i++) {
+    if ((l[i] ?? 0) > (c[i] ?? 0)) return true;
+    if ((l[i] ?? 0) < (c[i] ?? 0)) return false;
+  }
+  return false;
+}
+
+async function checkForUpdates(): Promise<UpdateInfo> {
+  const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
+  if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
+
+  const release = await res.json() as { tag_name: string; html_url: string; assets: { browser_download_url: string; name: string }[] };
+  const latestVersion = release.tag_name.replace(/^v/, '');
+  const currentVersion = app.getVersion();
+
+  const dmgAsset = release.assets.find((a: { name: string }) => a.name.endsWith('.dmg'));
+  const zipAsset = release.assets.find((a: { name: string }) => a.name.endsWith('.zip'));
+  const downloadUrl = dmgAsset?.browser_download_url ?? zipAsset?.browser_download_url ?? release.html_url;
+
+  return {
+    hasUpdate: compareVersions(currentVersion, latestVersion),
+    currentVersion,
+    latestVersion,
+    downloadUrl,
+    releaseUrl: release.html_url,
+  };
 }
 
 async function wrapAsync<T>(fn: () => Promise<T>): Promise<IpcResult<T>> {

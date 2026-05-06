@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, Keyboard } from 'lucide-react';
+import { X, Check, Keyboard, RefreshCw, Download, CheckCircle } from 'lucide-react';
 import { INPUT_CLASS, BACK_LINK_CLASS } from '../utils/styles';
 import { formatHotkeyForDisplay, keyEventToAccelerator } from '../utils/hotkey';
+import type { UpdateInfo } from '../../shared/types';
 
 interface SettingsViewProps {
   readonly onBack?: () => void;
@@ -129,23 +130,29 @@ export function SettingsView({ onBack, onClose }: SettingsViewProps) {
   const [hotkey, setHotkey] = useState('');
   const [collectHotkey, setCollectHotkey] = useState('');
   const [openQueueHotkey, setOpenQueueHotkey] = useState('');
+  const [appVersion, setAppVersion] = useState('');
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'done' | 'error'>('idle');
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [updateError, setUpdateError] = useState('');
 
   const hasKey = maskedKey.length > 0;
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const [keyResult, hotkeyResult, collectResult, openQueueResult] = await Promise.all([
+      const [keyResult, hotkeyResult, collectResult, openQueueResult, versionResult] = await Promise.all([
         window.api.getApiKey(),
         window.api.getHotkey(),
         window.api.getCollectHotkey(),
         window.api.getOpenQueueHotkey(),
+        window.api.getAppVersion(),
       ]);
       if (cancelled) return;
       if (keyResult.success && keyResult.data) setMaskedKey(keyResult.data);
       if (hotkeyResult.success && hotkeyResult.data) setHotkey(hotkeyResult.data);
       if (collectResult.success && collectResult.data) setCollectHotkey(collectResult.data);
       if (openQueueResult.success && openQueueResult.data) setOpenQueueHotkey(openQueueResult.data);
+      if (versionResult.success && versionResult.data) setAppVersion(versionResult.data);
     }
     load();
     return () => { cancelled = true; };
@@ -176,6 +183,25 @@ export function SettingsView({ onBack, onClose }: SettingsViewProps) {
       setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to save' });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleCheckForUpdates() {
+    setUpdateStatus('checking');
+    setUpdateError('');
+    setUpdateInfo(null);
+    try {
+      const result = await window.api.checkForUpdates();
+      if (result.success && result.data) {
+        setUpdateInfo(result.data);
+        setUpdateStatus('done');
+      } else {
+        setUpdateError(result.error ?? 'Failed to check for updates');
+        setUpdateStatus('error');
+      }
+    } catch {
+      setUpdateError('Could not reach GitHub');
+      setUpdateStatus('error');
     }
   }
 
@@ -304,6 +330,55 @@ export function SettingsView({ onBack, onClose }: SettingsViewProps) {
             if (result.success) setOpenQueueHotkey(h);
           }}
         />
+      </div>
+
+      {/* Updates */}
+      <div className="border-t border-border pt-3 flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <label className="text-xs font-medium text-content-secondary">Updates</label>
+            {appVersion && (
+              <p className="text-[11px] text-content-ghost">v{appVersion}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleCheckForUpdates}
+            disabled={updateStatus === 'checking'}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-xs text-content hover:border-border-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw className={`w-3 h-3 ${updateStatus === 'checking' ? 'animate-spin' : ''}`} />
+            {updateStatus === 'checking' ? 'Checking...' : 'Check for updates'}
+          </button>
+        </div>
+
+        {updateStatus === 'done' && updateInfo && (
+          updateInfo.hasUpdate ? (
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-md bg-linear-brand/10 border border-linear-brand/30">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-content">v{updateInfo.latestVersion} available</p>
+                <p className="text-[11px] text-content-ghost">You have v{updateInfo.currentVersion}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => window.api.openExternal(updateInfo.downloadUrl)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-linear-brand text-white rounded-md text-xs font-medium hover:bg-linear-brand-hover transition-colors shrink-0"
+              >
+                <Download className="w-3 h-3" />
+                Download
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-feedback-success/10 border border-feedback-success/30">
+              <CheckCircle className="w-4 h-4 text-feedback-success shrink-0" />
+              <p className="text-xs text-content">You're on the latest version</p>
+            </div>
+          )
+        )}
+
+        {updateStatus === 'error' && (
+          <p className="text-xs text-feedback-error">{updateError}</p>
+        )}
       </div>
     </div>
   );
