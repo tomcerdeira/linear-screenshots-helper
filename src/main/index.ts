@@ -5,7 +5,7 @@ import { captureScreenshot } from './screenshot';
 import { createPopupWindow } from './windows';
 import { registerIpcHandlers, setCurrentScreenshot, addToScreenshotQueue, getScreenshotQueueCount, flushScreenshotQueue, showToastWindow } from './ipc-handlers';
 import { hasApiKey } from '../services/linear-client';
-import { getEnabled, getHotkey, getCollectHotkey, getOpenQueueHotkey, getRecentSelections, getOnboardingComplete } from '../services/store';
+import { getEnabled, getHotkey, getCollectHotkey, getOpenQueueHotkey, getRecentSelections, getOnboardingComplete, setOnboardingComplete } from '../services/store';
 import { showOverlay, closeOverlay } from './overlay';
 import { getTeams, getProjects, getWorkflowStates, getLabels, getMembers } from '../services/linear-issues';
 
@@ -27,6 +27,7 @@ const trayCallbacks = {
   onOpenQueue: () => openIssueWithQueue(),
   onClearQueue: () => clearQueue(),
   getQueueCount: () => getScreenshotQueueCount(),
+  onWelcome: () => openWelcome(),
 };
 
 function registerHotkeys(): void {
@@ -135,6 +136,11 @@ function openPopup(mode?: 'queue'): void {
       popup.on('blur', dismiss);
     }, 200);
   });
+}
+
+function openWelcome(): void {
+  setOnboardingComplete(false);
+  openSettings();
 }
 
 function openSettings(): void {

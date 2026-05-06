@@ -1,10 +1,6 @@
 import { Tray, Menu, nativeImage, app } from 'electron';
+import path from 'node:path';
 import { getEnabled, setEnabled } from '../services/store';
-
-const ICON_SIZE = 16;
-const ICON_RADIUS_SQ = 36;
-const ICON_CENTER = 7.5;
-const LINEAR_PURPLE = { r: 94, g: 106, b: 210 };
 
 let tray: Tray | null = null;
 
@@ -15,10 +11,18 @@ type TrayCallbacks = {
   readonly onOpenQueue?: () => void;
   readonly onClearQueue?: () => void;
   readonly getQueueCount?: () => number;
+  readonly onWelcome?: () => void;
 };
 
+function getTrayIconPath(): string {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'trayTemplate.png');
+  }
+  return path.join(app.getAppPath(), 'assets', 'trayTemplate.png');
+}
+
 export function createTray(callbacks: TrayCallbacks): Tray {
-  const icon = nativeImage.createFromBuffer(createTrayIconBuffer());
+  const icon = nativeImage.createFromPath(getTrayIconPath());
   icon.setTemplateImage(true);
 
   tray = new Tray(icon);
@@ -69,33 +73,11 @@ export function updateTrayMenu(callbacks: TrayCallbacks): void {
       },
     },
     { label: 'Settings...', click: callbacks.onSettings },
+    { label: 'Welcome Guide', click: callbacks.onWelcome },
     { type: 'separator' },
     { label: 'Quit', click: () => app.quit() },
   ]));
 
   // Update title to show queue count
   tray.setTitle(queueCount > 0 ? `${queueCount}` : '');
-}
-
-function createTrayIconBuffer(): Buffer {
-  const canvas = Buffer.alloc(ICON_SIZE * ICON_SIZE * 4);
-
-  for (let y = 0; y < ICON_SIZE; y++) {
-    for (let x = 0; x < ICON_SIZE; x++) {
-      const idx = (y * ICON_SIZE + x) * 4;
-      const inCircle =
-        Math.pow(x - ICON_CENTER, 2) + Math.pow(y - ICON_CENTER, 2) < ICON_RADIUS_SQ;
-
-      if (inCircle) {
-        canvas[idx] = LINEAR_PURPLE.r;
-        canvas[idx + 1] = LINEAR_PURPLE.g;
-        canvas[idx + 2] = LINEAR_PURPLE.b;
-        canvas[idx + 3] = 255;
-      } else {
-        canvas[idx + 3] = 0;
-      }
-    }
-  }
-
-  return nativeImage.createFromBuffer(canvas, { width: ICON_SIZE, height: ICON_SIZE }).toPNG();
 }

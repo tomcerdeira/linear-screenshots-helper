@@ -264,8 +264,14 @@ export function SettingsView({ onBack, onClose }: SettingsViewProps) {
               autoFocus
             />
             <p className="text-xs text-content-ghost">
-              Generate at{' '}
-              <span className="text-linear-brand">linear.app/settings/api</span>
+              Create a personal API key in Linear Settings.{' '}
+              <button
+                type="button"
+                onClick={() => window.api.openExternal('https://linear.app/settings/api')}
+                className="text-linear-brand hover:underline"
+              >
+                Open Linear Settings &rarr;
+              </button>
             </p>
 
             <div className="flex gap-2">

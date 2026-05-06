@@ -17,6 +17,7 @@ const config: ForgeConfig = {
     icon: './assets/icon',
     appBundleId: 'com.tomcerdeira.linear-screenshot',
     appCategoryType: 'public.app-category.productivity',
+    extraResource: ['./assets/trayTemplate.png', './assets/trayTemplate@2x.png'],
     osxSign: {},
     ...(process.env.APPLE_ID && process.env.APPLE_ID_PASSWORD && process.env.APPLE_TEAM_ID
       ? {

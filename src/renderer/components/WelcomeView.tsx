@@ -1,102 +1,81 @@
 import React, { useState } from 'react';
-import { Camera, FileText, Zap, ArrowRight, Keyboard } from 'lucide-react';
 
 interface WelcomeViewProps {
   readonly onComplete: () => void;
 }
 
-const STEPS = [
-  {
-    icon: Camera,
-    title: 'Capture',
-    description: 'Take a screenshot of anything on your screen with a quick keyboard shortcut.',
-  },
-  {
-    icon: FileText,
-    title: 'Create',
-    description: 'A Linear issue form pops up instantly — add a title, description, and metadata.',
-  },
-  {
-    icon: Zap,
-    title: 'Done',
-    description: 'Your screenshot is attached and the issue is created in Linear. That\'s it.',
-  },
-];
+function KeyCap({ children }: { readonly children: React.ReactNode }) {
+  return (
+    <kbd className="inline-flex items-center justify-center min-w-[32px] h-[32px] px-2 rounded-md border border-border bg-surface-input text-content text-xs font-semibold font-mono">
+      {children}
+    </kbd>
+  );
+}
 
 export function WelcomeView({ onComplete }: WelcomeViewProps) {
   const [page, setPage] = useState(0);
 
   if (page === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full px-8 py-6 gap-6">
-        <div className="w-14 h-14 rounded-2xl bg-linear-brand/15 flex items-center justify-center">
-          <Camera className="w-7 h-7 text-linear-brand" />
+      <div className="flex flex-col items-center justify-center h-full px-10 gap-5">
+        <div className="w-16 h-16 rounded-[18px] bg-linear-brand flex items-center justify-center shadow-lg shadow-linear-brand/20">
+          <svg width="36" height="36" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#ffffff" d="M640 832H64V640a128 128 0 1 0 0-256V192h576v160h64V192h256v192a128 128 0 1 0 0 256v192H704V672h-64v160zm0-416v192h64V416h-64z"/>
+          </svg>
         </div>
-
-        <div className="text-center space-y-2">
-          <h1 className="text-lg font-semibold text-content">Welcome to Linear Screenshot</h1>
-          <p className="text-sm text-content-ghost leading-relaxed max-w-[380px]">
-            Capture screenshots and turn them into Linear issues — right from your menu bar.
+        <div className="text-center space-y-2.5">
+          <h1 className="text-base font-semibold text-content tracking-tight">
+            Screenshots to <span className="text-linear-brand">Linear tickets</span> in seconds
+          </h1>
+          <p className="text-xs text-content-ghost leading-relaxed max-w-[320px]">
+            A tiny menu bar app that captures any region of your screen
+            and creates Linear issues, without leaving your flow.
           </p>
         </div>
 
         <button
           type="button"
           onClick={() => setPage(1)}
-          className="flex items-center gap-2 px-5 py-2 bg-linear-brand text-white rounded-full text-sm font-medium hover:bg-linear-brand-hover transition-colors"
+          className="px-5 py-2 bg-linear-brand text-white rounded-full text-xs font-medium hover:bg-linear-brand-hover transition-colors"
         >
-          See how it works
-          <ArrowRight className="w-3.5 h-3.5" />
+          Get started
         </button>
       </div>
     );
   }
 
-  if (page === 1) {
-    return (
-      <div className="flex flex-col h-full px-8 py-6 gap-5">
+  return (
+    <div className="flex flex-col h-full px-8 py-6 gap-5">
+      <div className="space-y-1">
         <h2 className="text-sm font-semibold text-content">How it works</h2>
-
-        <div className="flex flex-col gap-4">
-          {STEPS.map((step, i) => (
-            <div key={step.title} className="flex items-start gap-3">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-input border border-border shrink-0 mt-0.5">
-                <step.icon className="w-4 h-4 text-linear-brand" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-content font-medium">
-                  <span className="text-content-ghost mr-1.5">{i + 1}.</span>
-                  {step.title}
-                </p>
-                <p className="text-xs text-content-ghost leading-relaxed mt-0.5">{step.description}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-auto flex flex-col gap-3">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-surface-input border border-border">
-            <Keyboard className="w-3.5 h-3.5 text-content-muted shrink-0" />
-            <p className="text-[11px] text-content-ghost">
-              Default shortcut: <span className="text-content font-medium">Cmd+Shift+L</span>
-              <span className="text-content-ghost"> — customizable in settings</span>
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={async () => {
-              await window.api.setOnboardingComplete(true);
-              onComplete();
-            }}
-            className="w-full py-2 bg-linear-brand text-white rounded-full text-sm font-medium hover:bg-linear-brand-hover transition-colors"
-          >
-            Get started
-          </button>
-        </div>
+        <p className="text-[11px] text-content-ghost">Three steps. That's it.</p>
       </div>
-    );
-  }
 
-  return null;
+      <div className="flex flex-col gap-3.5">
+        {[
+          { num: '1', text: 'Hit the shortcut to capture a region of your screen.' },
+          { num: '2', text: 'A form pops up — add a title, description, and metadata.' },
+          { num: '3', text: 'Your screenshot is attached and the issue is created in Linear.' },
+        ].map(({ num, text }) => (
+          <div key={num} className="flex items-baseline gap-3">
+            <span className="text-[11px] font-medium text-linear-brand w-3 shrink-0">{num}</span>
+            <p className="text-xs text-content-secondary leading-relaxed">{text}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-auto">
+        <button
+          type="button"
+          onClick={async () => {
+            await window.api.setOnboardingComplete(true);
+            onComplete();
+          }}
+          className="w-full py-2 bg-linear-brand text-white rounded-full text-xs font-medium hover:bg-linear-brand-hover transition-colors"
+        >
+          Set up your API key
+        </button>
+      </div>
+    </div>
+  );
 }
