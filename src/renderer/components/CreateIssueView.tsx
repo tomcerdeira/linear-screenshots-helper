@@ -1,10 +1,17 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from 'react';
 import { X, Image, Paperclip, User, Tag } from 'lucide-react';
 import { TeamPicker } from './TeamPicker';
 import { ProjectPicker } from './ProjectPicker';
 import { ScreenshotPreview } from './ScreenshotPreview';
-import { RichTextEditor } from './RichTextEditor';
 import { MetadataPill, MultiMetadataPill } from './MetadataPill';
+
+const RichTextEditor = lazy(() =>
+  import('./RichTextEditor').then((m) => ({ default: m.RichTextEditor })),
+);
+
+function EditorFallback() {
+  return <div className="min-h-[40px] text-[14px] text-content-placeholder">Loading editor...</div>;
+}
 import { PriorityIcon, StatusIcon, LabelDot } from './LinearIcons';
 import { useRecentSelections } from '../hooks/useRecentSelections';
 import { useTeamData } from '../hooks/useTeamData';
@@ -88,18 +95,23 @@ export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onCl
     }
   }, [workflowStates, stateId]);
 
-  function handleTeamChange(id: string) {
+  const handleTeamChange = useCallback((id: string) => {
     setTeamId(id);
     setStateId('');
     setLabelIds([]);
     setAssigneeId('');
     window.api.saveLastTeam(id);
-  }
+  }, []);
 
-  function handleProjectChange(id: string) {
+  const handleProjectChange = useCallback((id: string) => {
     setProjectId(id);
     window.api.saveLastProject(id);
-  }
+  }, []);
+
+  const handleStateChange = useCallback((id: string) => setStateId(id), []);
+  const handlePriorityChange = useCallback((p: string) => setPriority(p), []);
+  const handleAssigneeChange = useCallback((id: string) => setAssigneeId(id), []);
+  const handleLabelsChange = useCallback((ids: string[]) => setLabelIds(ids), []);
 
   function handleSubmit() {
     const form = formRef.current;
@@ -203,7 +215,9 @@ export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onCl
           autoFocus
         />
 
-        <RichTextEditor onChange={setDescription} />
+        <Suspense fallback={<EditorFallback />}>
+          <RichTextEditor onChange={setDescription} />
+        </Suspense>
 
         {(() => {
           const allScreenshots = [screenshotDataUrl, ...(additionalScreenshots ?? [])];
@@ -260,7 +274,7 @@ export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onCl
                 pillIcon={selectedState ? <StatusIcon type={selectedState.type} color={selectedState.color} className="w-3.5 h-3.5" /> : undefined}
                 options={stateOptions}
                 value={stateId}
-                onChange={setStateId}
+                onChange={handleStateChange}
                 panelMinWidth={180}
                 shortcutKey="s"
               />
@@ -271,7 +285,7 @@ export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onCl
               pillIcon={<PriorityIcon level={parseInt(priority, 10)} className="w-3.5 h-3.5" />}
               options={PRIORITY_OPTIONS}
               value={priority}
-              onChange={setPriority}
+              onChange={handlePriorityChange}
               panelMinWidth={160}
               shortcutKey="p"
             />
@@ -282,7 +296,7 @@ export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onCl
                 pillIcon={<AssigneeIcon />}
                 options={memberOptions}
                 value={assigneeId}
-                onChange={setAssigneeId}
+                onChange={handleAssigneeChange}
                 panelMinWidth={240}
                 searchPlaceholder="Assign to..."
                 shortcutKey="a"
@@ -299,7 +313,7 @@ export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onCl
             pillIcon={<LabelIcon />}
             options={labelOptions}
             values={labelIds}
-            onChange={setLabelIds}
+            onChange={handleLabelsChange}
             panelMinWidth={200}
             shortcutKey="l"
           />

@@ -1,4 +1,6 @@
-import { get } from 'node-emoji';
+import emojiMapData from './emoji-map.json';
+
+const EMOJI_MAP = emojiMapData as Record<string, string>;
 
 // Linear icon names that don't match standard emoji shortcodes
 const LINEAR_ICON_MAP: Record<string, string> = {
@@ -19,8 +21,7 @@ const EMOJI_REGEX = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE
 function resolveShortcode(code: string): string | null {
   const lower = code.toLowerCase();
   const mapped = LINEAR_ICON_MAP[lower] ?? lower;
-  const emoji = get(mapped);
-  return emoji && !emoji.startsWith(':') ? emoji : null;
+  return EMOJI_MAP[mapped] ?? null;
 }
 
 /**

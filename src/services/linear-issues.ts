@@ -76,15 +76,22 @@ export function getLabels(teamId: string): Promise<LinearLabel[]> {
   });
 }
 
+function getViewerId(): Promise<string> {
+  return cached('viewerId', async () => {
+    const client = getLinearClient();
+    const viewer = await client.viewer;
+    return viewer.id;
+  });
+}
+
 export function getMembers(teamId: string): Promise<LinearUser[]> {
   return cached(`members:${teamId}`, async () => {
     const client = getLinearClient();
-    const [team, viewer] = await Promise.all([
+    const [team, viewerId] = await Promise.all([
       client.team(teamId),
-      client.viewer,
+      getViewerId(),
     ]);
     const members = await team.members();
-    const viewerId = viewer.id;
 
     const mapped = members.nodes.map((member) => ({
       id: member.id,
@@ -123,38 +130,36 @@ export async function searchIssues(query: string): Promise<LinearIssueResult[]> 
 
 async function uploadInlineImages(markdown: string): Promise<string> {
   const dataUrlPattern = /!\[([^\]]*)\]\((data:image\/[^)]+)\)/g;
-  let result = markdown;
   const matches = [...markdown.matchAll(dataUrlPattern)];
+  if (matches.length === 0) return markdown;
 
-  for (const match of matches) {
-    const [fullMatch, alt, dataUrl] = match;
-    const buffer = dataUrlToBuffer(dataUrl);
-    const assetUrl = await uploadScreenshot(buffer, `inline-${Date.now()}.png`);
-    result = result.replace(fullMatch, `![${alt}](${assetUrl})`);
+  const replacements = await Promise.all(
+    matches.map(async (match, i) => {
+      const [fullMatch, alt, dataUrl] = match;
+      const buffer = dataUrlToBuffer(dataUrl);
+      const assetUrl = await uploadScreenshot(buffer, `inline-${Date.now()}-${i}.png`);
+      return { fullMatch, replacement: `![${alt}](${assetUrl})` };
+    }),
+  );
+
+  let result = markdown;
+  for (const { fullMatch, replacement } of replacements) {
+    result = result.replace(fullMatch, replacement);
   }
-
   return result;
 }
 
 export async function createIssue(input: CreateIssueInput): Promise<LinearIssueResult> {
   const client = getLinearClient();
-  const assetUrl = await uploadScreenshotFromDataUrl(input.screenshotDataUrl);
 
-  // Upload additional screenshots if present (multi-screenshot mode)
-  const additionalAssetUrls: string[] = [];
-  if (input.additionalScreenshotDataUrls?.length) {
-    for (const dataUrl of input.additionalScreenshotDataUrls) {
-      const url = await uploadScreenshotFromDataUrl(dataUrl);
-      additionalAssetUrls.push(url);
-    }
-  }
+  const allScreenshotUrls = [input.screenshotDataUrl, ...(input.additionalScreenshotDataUrls ?? [])];
 
-  const descriptionMd = input.description
-    ? await uploadInlineImages(input.description)
-    : '';
+  const [uploadedAssets, descriptionMd] = await Promise.all([
+    Promise.all(allScreenshotUrls.map(uploadScreenshotFromDataUrl)),
+    input.description ? uploadInlineImages(input.description) : Promise.resolve(''),
+  ]);
 
-  // Build the screenshots section
-  const allScreenshotsMd = [assetUrl, ...additionalAssetUrls]
+  const allScreenshotsMd = uploadedAssets
     .map((url, i) => `![screenshot-${i + 1}](${url})`)
     .join('\n\n');
 

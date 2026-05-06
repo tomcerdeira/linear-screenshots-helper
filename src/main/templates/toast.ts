@@ -16,19 +16,25 @@ export function buildToastHtml(title: string, body: string, url: string, duratio
 <head>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: transparent;
+  html, body {
+    width: 100%; height: 100%;
+    background: transparent !important;
     -webkit-app-region: no-drag;
     overflow: hidden;
   }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+  }
   .toast {
+    flex: 1;
     background: #232326;
     border: 1px solid #3b3b40;
     border-radius: 10px;
     padding: 12px 14px;
     display: flex; flex-direction: column; gap: 4px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
     animation: slideIn 200ms ease-out;
     cursor: default;
   }

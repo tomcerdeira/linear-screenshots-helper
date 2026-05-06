@@ -14,3 +14,11 @@ root.render(
     <App />
   </React.StrictMode>,
 );
+
+// Tell the main process the renderer has actually painted, so it can show
+// the window only when content is ready — eliminates the empty-frame flicker.
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    window.api?.signalReady?.();
+  });
+});

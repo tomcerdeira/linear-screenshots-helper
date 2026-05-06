@@ -36,6 +36,7 @@ interface ElectronApi {
   openExternal(url: string): Promise<IpcResult>;
   getOnboardingComplete(): Promise<IpcResult<boolean>>;
   setOnboardingComplete(complete: boolean): Promise<IpcResult>;
+  signalReady(): void;
 }
 
 declare global {

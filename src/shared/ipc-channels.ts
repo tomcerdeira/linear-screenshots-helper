@@ -35,4 +35,5 @@ export const IPC = {
   OPEN_EXTERNAL: 'app:openExternal',
   GET_ONBOARDING_COMPLETE: 'store:getOnboardingComplete',
   SET_ONBOARDING_COMPLETE: 'store:setOnboardingComplete',
+  RENDERER_READY: 'app:rendererReady',
 } as const;

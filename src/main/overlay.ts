@@ -17,6 +17,7 @@ export function showOverlay(dismissCallback: () => void): void {
       y,
       width,
       height,
+      show: false,
       frame: false,
       transparent: true,
       alwaysOnTop: true,
@@ -25,6 +26,7 @@ export function showOverlay(dismissCallback: () => void): void {
       movable: false,
       focusable: true,
       hasShadow: false,
+      paintWhenInitiallyHidden: true,
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
@@ -33,11 +35,21 @@ export function showOverlay(dismissCallback: () => void): void {
 
     overlay.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     overlay.setAlwaysOnTop(true, 'normal');
+    overlay.once('ready-to-show', () => {
+      if (!overlay.isDestroyed()) overlay.showInactive();
+    });
 
     const html = `<!DOCTYPE html>
 <html><head><style>
   * { margin: 0; padding: 0; }
-  body { background: rgba(0, 0, 0, 0.4); width: 100vw; height: 100vh; cursor: default; }
+  body {
+    background: rgba(0, 0, 0, 0.4);
+    width: 100vw; height: 100vh;
+    cursor: default;
+    opacity: 0;
+    animation: fadeIn 100ms ease-out forwards;
+  }
+  @keyframes fadeIn { to { opacity: 1; } }
 </style></head>
 <body>
 <script>

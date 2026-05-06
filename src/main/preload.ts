@@ -37,4 +37,5 @@ contextBridge.exposeInMainWorld('api', {
   openExternal: (url: string) => ipcRenderer.invoke(IPC.OPEN_EXTERNAL, url),
   getOnboardingComplete: () => ipcRenderer.invoke(IPC.GET_ONBOARDING_COMPLETE),
   setOnboardingComplete: (complete: boolean) => ipcRenderer.invoke(IPC.SET_ONBOARDING_COMPLETE, complete),
+  signalReady: () => ipcRenderer.send(IPC.RENDERER_READY),
 });

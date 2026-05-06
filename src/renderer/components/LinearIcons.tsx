@@ -2,7 +2,7 @@ import React from 'react';
 
 // --- Priority Icons (match Linear's bar-chart style) ---
 
-export function PriorityIcon({ level, className = 'w-4 h-4' }: { readonly level: number; readonly className?: string }) {
+export const PriorityIcon = React.memo(function PriorityIcon({ level, className = 'w-4 h-4' }: { readonly level: number; readonly className?: string }) {
   switch (level) {
     case 1: return <UrgentIcon className={className} />;
     case 2: return <HighIcon className={className} />;
@@ -10,7 +10,7 @@ export function PriorityIcon({ level, className = 'w-4 h-4' }: { readonly level:
     case 4: return <LowIcon className={className} />;
     default: return <NoPriorityIcon className={className} />;
   }
-}
+});
 
 function UrgentIcon({ className }: { readonly className: string }) {
   return (
@@ -63,7 +63,9 @@ function NoPriorityIcon({ className }: { readonly className: string }) {
 
 // --- Status Icons (match Linear's circular workflow state icons) ---
 
-export function StatusIcon({ type, color, className = 'w-3.5 h-3.5' }: { readonly type: string; readonly color: string; readonly className?: string }) {
+export const StatusIcon = React.memo(StatusIconImpl);
+
+function StatusIconImpl({ type, color, className = 'w-3.5 h-3.5' }: { readonly type: string; readonly color: string; readonly className?: string }) {
   switch (type) {
     case 'backlog':
       return (
@@ -109,10 +111,10 @@ export function StatusIcon({ type, color, className = 'w-3.5 h-3.5' }: { readonl
 
 // --- Label dot ---
 
-export function LabelDot({ color, className = 'w-3 h-3' }: { readonly color: string; readonly className?: string }) {
+export const LabelDot = React.memo(function LabelDot({ color, className = 'w-3 h-3' }: { readonly color: string; readonly className?: string }) {
   return (
     <svg className={className} viewBox="0 0 12 12">
       <circle cx="6" cy="6" r="5" fill={color} />
     </svg>
   );
-}
+});

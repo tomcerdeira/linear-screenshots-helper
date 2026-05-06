@@ -57,7 +57,9 @@ interface MetadataPillProps {
   readonly shortcutKey?: string;
 }
 
-export function MetadataPill({ label, pillIcon, options, value, onChange, disabled, panelMinWidth = 200, searchPlaceholder, shortcutKey }: MetadataPillProps) {
+export const MetadataPill = React.memo(MetadataPillImpl);
+
+function MetadataPillImpl({ label, pillIcon, options, value, onChange, disabled, panelMinWidth = 200, searchPlaceholder, shortcutKey }: MetadataPillProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   useShortcutKey(shortcutKey, containerRef);
 
@@ -105,7 +107,9 @@ interface MultiMetadataPillProps {
   readonly shortcutKey?: string;
 }
 
-export function MultiMetadataPill({ label, pillIcon, options, values, onChange, disabled, panelMinWidth = 200, shortcutKey }: MultiMetadataPillProps) {
+export const MultiMetadataPill = React.memo(MultiMetadataPillImpl);
+
+function MultiMetadataPillImpl({ label, pillIcon, options, values, onChange, disabled, panelMinWidth = 200, shortcutKey }: MultiMetadataPillProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   useShortcutKey(shortcutKey, containerRef);
 

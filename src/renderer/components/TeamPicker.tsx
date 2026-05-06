@@ -8,7 +8,9 @@ interface TeamPickerProps {
   readonly variant?: 'default' | 'compact';
 }
 
-export function TeamPicker({ value, onChange, variant = 'default' }: TeamPickerProps) {
+export const TeamPicker = React.memo(TeamPickerImpl);
+
+function TeamPickerImpl({ value, onChange, variant = 'default' }: TeamPickerProps) {
   const { teams, loading, error } = useLinearTeams();
 
   if (error) {

@@ -1,9 +1,10 @@
-import { app, globalShortcut, systemPreferences, dialog, shell } from 'electron';
+import { app, globalShortcut, systemPreferences, dialog, shell, ipcMain } from 'electron';
+import { IPC } from '../shared/ipc-channels';
 import started from 'electron-squirrel-startup';
 import { createTray, updateTrayMenu } from './tray';
 import { captureScreenshot } from './screenshot';
 import { createPopupWindow } from './windows';
-import { registerIpcHandlers, setCurrentScreenshot, addToScreenshotQueue, getScreenshotQueueCount, flushScreenshotQueue, showToastWindow } from './ipc-handlers';
+import { registerIpcHandlers, setCurrentScreenshot, addToScreenshotQueue, getScreenshotQueueCount, flushScreenshotQueue, snapshotScreenshotQueue, clearActiveQueueSnapshot, showToastWindow } from './ipc-handlers';
 import { hasApiKey } from '../services/linear-client';
 import { getEnabled, getHotkey, getCollectHotkey, getOpenQueueHotkey, getRecentSelections, getOnboardingComplete, setOnboardingComplete } from '../services/store';
 import { showOverlay, closeOverlay } from './overlay';
@@ -103,9 +104,10 @@ async function handleCollectCapture(): Promise<void> {
 }
 
 function openIssueWithQueue(): void {
-  // The queue items will be fetched by the renderer via GET_SCREENSHOT_QUEUE
-  // Set currentScreenshot to null so the renderer knows to check the queue
+  // Snapshot the live queue so renderer reads are idempotent (StrictMode-safe).
+  // The snapshot is cleared when the popup closes.
   setCurrentScreenshot(null);
+  snapshotScreenshotQueue();
 
   openPopup('queue');
   updateTrayMenu(trayCallbacks);
@@ -116,6 +118,39 @@ function clearQueue(): void {
   updateTrayMenu(trayCallbacks);
 }
 
+function waitForRendererReady(popup: Electron.BrowserWindow, timeoutMs = 1500): Promise<void> {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (): void => {
+      if (done) return;
+      done = true;
+      ipcMain.removeListener(IPC.RENDERER_READY, onSignal);
+      resolve();
+    };
+    const onSignal = (event: Electron.IpcMainEvent): void => {
+      if (event.sender === popup.webContents) finish();
+    };
+    ipcMain.on(IPC.RENDERER_READY, onSignal);
+    popup.once('closed', finish);
+    setTimeout(finish, timeoutMs);
+  });
+}
+
+function fadeInWindow(win: Electron.BrowserWindow, durationMs = 120): void {
+  // Caller is expected to have setOpacity(0) and show() the window already,
+  // so the first visible frame is at opacity 0 — avoiding any flash.
+  const steps = 8;
+  const stepMs = durationMs / steps;
+  let i = 0;
+  const tick = (): void => {
+    if (win.isDestroyed()) return;
+    i++;
+    win.setOpacity(Math.min(1, i / steps));
+    if (i < steps) setTimeout(tick, stepMs);
+  };
+  setTimeout(tick, stepMs);
+}
+
 function openPopup(mode?: 'queue'): void {
   const popup = createPopupWindow();
   let ready = false;
@@ -123,14 +158,20 @@ function openPopup(mode?: 'queue'): void {
   showOverlay(dismiss);
   popup.on('closed', () => {
     closeOverlay();
+    clearActiveQueueSnapshot();
     updateTrayMenu(trayCallbacks);
   });
   popup.webContents.once('did-finish-load', () => {
     if (mode === 'queue') {
       popup.webContents.send('mode', 'queue');
     }
+  });
+  void waitForRendererReady(popup).then(() => {
+    if (popup.isDestroyed()) return;
+    popup.setOpacity(0);
     popup.show();
     popup.focus();
+    fadeInWindow(popup);
     setTimeout(() => {
       ready = true;
       popup.on('blur', dismiss);
@@ -153,8 +194,13 @@ function openSettings(): void {
   popup.on('closed', () => closeOverlay());
   popup.webContents.once('did-finish-load', () => {
     popup.webContents.send('navigate', 'settings');
+  });
+  void waitForRendererReady(popup).then(() => {
+    if (popup.isDestroyed()) return;
+    popup.setOpacity(0);
     popup.show();
     popup.focus();
+    fadeInWindow(popup);
     setTimeout(() => {
       ready = true;
       popup.on('blur', dismiss);

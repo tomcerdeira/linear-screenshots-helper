@@ -1,10 +1,31 @@
 import React, { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useScreenshot } from './hooks/useScreenshot';
 import { CreateIssueView } from './components/CreateIssueView';
 import { ExistingTicketSearch } from './components/ExistingTicketSearch';
 import { SettingsView } from './components/SettingsView';
 import { WelcomeView } from './components/WelcomeView';
 import type { ScreenshotData } from '../shared/types';
+
+const VIEW_TRANSITION = { duration: 0.12, ease: [0.4, 0, 0.2, 1] as const };
+const VIEW_INITIAL = { opacity: 0, x: 6 };
+const VIEW_ANIMATE = { opacity: 1, x: 0 };
+const VIEW_EXIT = { opacity: 0, x: -6 };
+
+function ViewWrapper({ k, children }: { readonly k: string; readonly children: React.ReactNode }) {
+  return (
+    <motion.div
+      key={k}
+      initial={VIEW_INITIAL}
+      animate={VIEW_ANIMATE}
+      exit={VIEW_EXIT}
+      transition={VIEW_TRANSITION}
+      className="h-full flex flex-col"
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 type View = 'create' | 'existing' | 'settings';
 
@@ -16,22 +37,19 @@ export function App() {
   const [showWelcome, setShowWelcome] = useState<boolean | null>(null);
 
   useEffect(() => {
-    async function checkQueue() {
-      const result = await window.api.getScreenshotQueue();
-      if (result.success && result.data && result.data.length > 0) {
-        setQueuedScreenshots(result.data);
+    let cancelled = false;
+    Promise.all([
+      window.api.getScreenshotQueue(),
+      window.api.getOnboardingComplete(),
+    ]).then(([queueResult, onboardingResult]) => {
+      if (cancelled) return;
+      if (queueResult.success && queueResult.data && queueResult.data.length > 0) {
+        setQueuedScreenshots(queueResult.data);
         setIsQueueMode(true);
       }
-    }
-    checkQueue();
-  }, []);
-
-  useEffect(() => {
-    async function checkOnboarding() {
-      const result = await window.api.getOnboardingComplete();
-      setShowWelcome(result.success && result.data === false);
-    }
-    checkOnboarding();
+      setShowWelcome(onboardingResult.success && onboardingResult.data === false);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   function handleClose() {
@@ -55,25 +73,31 @@ export function App() {
 
     return (
       <Shell>
-        {view === 'create' && (
-          <CreateIssueView
-            screenshotDataUrl={primaryScreenshot.dataUrl}
-            additionalScreenshots={allDataUrls.slice(1)}
-            onClose={handleClose}
-            onSwitchToExisting={() => setView('existing')}
-          />
-        )}
-
-        {view === 'existing' && (
-          <ExistingTicketSearch
-            screenshotDataUrl={primaryScreenshot.dataUrl}
-            onBack={() => setView('create')}
-          />
-        )}
-
-        {view === 'settings' && (
-          <SettingsView onBack={() => setView('create')} onClose={handleClose} />
-        )}
+        <AnimatePresence mode="wait" initial={false}>
+          {view === 'create' && (
+            <ViewWrapper k="create">
+              <CreateIssueView
+                screenshotDataUrl={primaryScreenshot.dataUrl}
+                additionalScreenshots={allDataUrls.slice(1)}
+                onClose={handleClose}
+                onSwitchToExisting={() => setView('existing')}
+              />
+            </ViewWrapper>
+          )}
+          {view === 'existing' && (
+            <ViewWrapper k="existing">
+              <ExistingTicketSearch
+                screenshotDataUrl={primaryScreenshot.dataUrl}
+                onBack={() => setView('create')}
+              />
+            </ViewWrapper>
+          )}
+          {view === 'settings' && (
+            <ViewWrapper k="settings">
+              <SettingsView onBack={() => setView('create')} onClose={handleClose} />
+            </ViewWrapper>
+          )}
+        </AnimatePresence>
       </Shell>
     );
   }
@@ -96,24 +120,30 @@ export function App() {
 
   return (
     <Shell>
-      {view === 'create' && (
-        <CreateIssueView
-          screenshotDataUrl={screenshot.dataUrl}
-          onClose={handleClose}
-          onSwitchToExisting={() => setView('existing')}
-        />
-      )}
-
-      {view === 'existing' && (
-        <ExistingTicketSearch
-          screenshotDataUrl={screenshot.dataUrl}
-          onBack={() => setView('create')}
-        />
-      )}
-
-      {view === 'settings' && (
-        <SettingsView onBack={() => setView('create')} onClose={handleClose} />
-      )}
+      <AnimatePresence mode="wait" initial={false}>
+        {view === 'create' && (
+          <ViewWrapper k="create">
+            <CreateIssueView
+              screenshotDataUrl={screenshot.dataUrl}
+              onClose={handleClose}
+              onSwitchToExisting={() => setView('existing')}
+            />
+          </ViewWrapper>
+        )}
+        {view === 'existing' && (
+          <ViewWrapper k="existing">
+            <ExistingTicketSearch
+              screenshotDataUrl={screenshot.dataUrl}
+              onBack={() => setView('create')}
+            />
+          </ViewWrapper>
+        )}
+        {view === 'settings' && (
+          <ViewWrapper k="settings">
+            <SettingsView onBack={() => setView('create')} onClose={handleClose} />
+          </ViewWrapper>
+        )}
+      </AnimatePresence>
     </Shell>
   );
 }

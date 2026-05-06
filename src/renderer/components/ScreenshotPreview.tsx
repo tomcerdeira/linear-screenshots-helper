@@ -4,7 +4,7 @@ interface ScreenshotPreviewProps {
   readonly dataUrl: string;
 }
 
-export function ScreenshotPreview({ dataUrl }: ScreenshotPreviewProps) {
+export const ScreenshotPreview = React.memo(function ScreenshotPreview({ dataUrl }: ScreenshotPreviewProps) {
   return (
     <div className="rounded-md overflow-hidden border border-border bg-[#18181b]">
       <img
@@ -14,4 +14,4 @@ export function ScreenshotPreview({ dataUrl }: ScreenshotPreviewProps) {
       />
     </div>
   );
-}
+});

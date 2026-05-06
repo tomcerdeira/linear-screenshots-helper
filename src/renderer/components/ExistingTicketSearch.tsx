@@ -12,7 +12,7 @@ interface ExistingTicketSearchProps {
   readonly preselectedIssue?: LinearIssueResult | null;
 }
 
-function IssueList({
+const IssueList = React.memo(function IssueList({
   issues,
   onSelect,
 }: {
@@ -26,11 +26,27 @@ function IssueList({
           <button
             type="button"
             onClick={() => onSelect(issue)}
+            title={issue.title}
             className="w-full text-left px-3 py-2 hover:bg-surface-input transition-colors"
           >
             <span className="text-xs font-mono text-linear-brand">{issue.identifier}</span>
             <span className="text-sm text-content-secondary ml-2">{issue.title}</span>
           </button>
+        </li>
+      ))}
+    </ul>
+  );
+});
+
+function IssueListSkeleton({ rows = 3 }: { readonly rows?: number }) {
+  return (
+    <ul className="border border-border rounded-md">
+      {Array.from({ length: rows }).map((_, i) => (
+        <li key={i} className={i > 0 ? 'border-t border-surface-input' : ''}>
+          <div className="px-3 py-2.5 flex items-center gap-2">
+            <span className="skeleton-pill inline-block w-12 h-3 rounded" />
+            <span className="skeleton-pill inline-block flex-1 h-3 rounded" />
+          </div>
         </li>
       ))}
     </ul>
@@ -118,7 +134,12 @@ export function ExistingTicketSearch({ screenshotDataUrl, onBack, preselectedIss
                     <IssueList issues={assignedIssues} onSelect={setSelectedIssue} />
                   </div>
                 )}
-                {loadingAssigned && recentTickets.length === 0 && <p className="text-xs text-content-ghost">Loading...</p>}
+                {loadingAssigned && recentTickets.length === 0 && (
+                  <div>
+                    <p className="text-xs text-content-ghost mb-1.5">Assigned to you</p>
+                    <IssueListSkeleton rows={4} />
+                  </div>
+                )}
               </>
             )}
           </>

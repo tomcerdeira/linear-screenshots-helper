@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, Search, Check } from 'lucide-react';
 import { shortcodeToEmoji } from '../utils/emoji';
 
@@ -26,10 +27,18 @@ interface DropdownProps {
 }
 
 interface PanelPosition {
-  readonly bottom: number;
+  readonly top?: number;
+  readonly bottom?: number;
   readonly left: number;
   readonly width: number;
+  readonly maxHeight: number;
+  readonly placement: 'top' | 'bottom';
+  readonly originX: 'left' | 'right' | 'center';
 }
+
+const VIEWPORT_MARGIN = 8;
+const PANEL_GAP = 4;
+const PANEL_MIN_HEIGHT = 120;
 
 function EmojiIcon({ icon }: { readonly icon: string | null | undefined }) {
   const emoji = shortcodeToEmoji(icon);
@@ -112,17 +121,41 @@ export function Dropdown({
   const filteredRef = useRef(filtered);
   filteredRef.current = filtered;
 
-  // Compute position relative to the trigger button
+  // Compute position relative to the trigger button, clamping to viewport
   const updatePosition = useCallback(() => {
     if (!buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
+    const viewportW = window.innerWidth;
+    const viewportH = window.innerHeight;
 
-    setPosition({
-      bottom: window.innerHeight - rect.top + 4,
-      left: rect.left,
-      width: rect.width,
-    });
-  }, []);
+    const desiredWidth = Math.max(rect.width, panelMinWidth ?? 0);
+    const width = Math.min(desiredWidth, viewportW - VIEWPORT_MARGIN * 2);
+
+    // Horizontal: prefer left-aligned to trigger; if overflows right, right-align to trigger; clamp.
+    let left = rect.left;
+    let originX: 'left' | 'right' | 'center' = 'left';
+    if (left + width > viewportW - VIEWPORT_MARGIN) {
+      left = rect.right - width;
+      originX = 'right';
+    }
+    if (left < VIEWPORT_MARGIN) {
+      left = VIEWPORT_MARGIN;
+      originX = 'center';
+    }
+
+    // Vertical: prefer above (current default); flip below if not enough room.
+    const spaceAbove = rect.top - VIEWPORT_MARGIN - PANEL_GAP;
+    const spaceBelow = viewportH - rect.bottom - VIEWPORT_MARGIN - PANEL_GAP;
+    const placement: 'top' | 'bottom' =
+      spaceAbove >= PANEL_MIN_HEIGHT || spaceAbove >= spaceBelow ? 'top' : 'bottom';
+    const maxHeight = placement === 'top' ? spaceAbove : spaceBelow;
+
+    setPosition(
+      placement === 'top'
+        ? { bottom: viewportH - rect.top + PANEL_GAP, left, width, maxHeight, placement, originX }
+        : { top: rect.bottom + PANEL_GAP, left, width, maxHeight, placement, originX },
+    );
+  }, [panelMinWidth]);
 
   // Close on outside click; handle Escape and arrow/enter navigation at document level
   useEffect(() => {
@@ -264,18 +297,30 @@ export function Dropdown({
         {renderTrigger ? renderTrigger(selected, open) : defaultTrigger}
       </button>
 
-      {open && position && createPortal(
-        <div
+      {createPortal(
+        <AnimatePresence>
+          {open && position && (
+        <motion.div
           ref={panelRef}
           tabIndex={-1}
+          initial={{ opacity: 0, y: position.placement === 'top' ? -4 : 4, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: position.placement === 'top' ? -4 : 4, scale: 0.97 }}
+          transition={{ duration: 0.1, ease: [0.4, 0, 0.2, 1] }}
           style={{
             position: 'fixed',
-            bottom: position.bottom,
+            ...(position.placement === 'top'
+              ? { bottom: position.bottom }
+              : { top: position.top }),
             left: position.left,
-            width: Math.max(position.width, panelMinWidth ?? 0),
+            width: position.width,
+            maxHeight: position.maxHeight,
             zIndex: 9999,
+            transformOrigin: `${position.placement === 'top' ? 'bottom' : 'top'} ${position.originX}`,
+            display: 'flex',
+            flexDirection: 'column',
           }}
-          className="rounded-lg bg-surface-raised border border-border-subtle shadow-2xl shadow-black/50 overflow-hidden animate-in"
+          className="rounded-lg bg-surface-raised border border-border-subtle shadow-2xl shadow-black/50 overflow-hidden"
         >
           {searchable && (
             <div className="px-2 pt-2 pb-1.5">
@@ -296,7 +341,7 @@ export function Dropdown({
           <ul
             ref={listRef}
             role="listbox"
-            className="max-h-[240px] overflow-y-auto py-1 px-1"
+            className="flex-1 min-h-0 max-h-[240px] overflow-y-auto py-1 px-1"
           >
             {filtered.length === 0 && (
               <li className="px-2 py-4 text-[13px] text-content-muted text-center">
@@ -321,6 +366,7 @@ export function Dropdown({
                       type="button"
                       role="option"
                       aria-selected={isSelected}
+                      title={option.label}
                       onClick={() => handleSelect(option.value)}
                       onMouseEnter={() => setHighlightIndex(i)}
                       className={[
@@ -344,7 +390,9 @@ export function Dropdown({
               );
             })}
           </ul>
-        </div>,
+        </motion.div>
+          )}
+        </AnimatePresence>,
         document.body,
       )}
     </>

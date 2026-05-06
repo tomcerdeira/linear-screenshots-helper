@@ -8,6 +8,7 @@ import { buildToastHtml } from './templates/toast';
 
 let currentScreenshot: ScreenshotData | null = null;
 const screenshotQueue: ScreenshotData[] = [];
+let activeQueueSnapshot: ScreenshotData[] = [];
 
 export function setCurrentScreenshot(data: ScreenshotData | null): void {
   currentScreenshot = data;
@@ -27,12 +28,21 @@ export function flushScreenshotQueue(): ScreenshotData[] {
   return items;
 }
 
+export function snapshotScreenshotQueue(): ScreenshotData[] {
+  activeQueueSnapshot = flushScreenshotQueue();
+  return activeQueueSnapshot;
+}
+
+export function clearActiveQueueSnapshot(): void {
+  activeQueueSnapshot = [];
+}
+
 let onHotkeyChanged: ((hotkey: string) => void) | null = null;
 
 export function registerIpcHandlers(callbacks?: { onHotkeyChanged?: (hotkey: string) => void }): void {
   onHotkeyChanged = callbacks?.onHotkeyChanged ?? null;
   ipcMain.handle(IPC.GET_SCREENSHOT_QUEUE, (): IpcResult<ScreenshotData[]> => {
-    return { success: true, data: flushScreenshotQueue() };
+    return { success: true, data: activeQueueSnapshot };
   });
 
   ipcMain.handle(IPC.GET_QUEUE_COUNT, (): IpcResult<number> => {

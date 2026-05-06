@@ -9,7 +9,9 @@ interface ProjectPickerProps {
   readonly variant?: 'default' | 'pill';
 }
 
-export function ProjectPicker({ value, onChange, variant = 'default' }: ProjectPickerProps) {
+export const ProjectPicker = React.memo(ProjectPickerImpl);
+
+function ProjectPickerImpl({ value, onChange, variant = 'default' }: ProjectPickerProps) {
   const { projects, loading, error } = useLinearProjects();
 
   if (error) {

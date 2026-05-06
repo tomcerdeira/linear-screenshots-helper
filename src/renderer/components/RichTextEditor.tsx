@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 // eslint-disable-next-line import/no-unresolved
 import { BubbleMenu } from '@tiptap/react/menus';
@@ -11,13 +11,19 @@ import {
   Bold, Italic, Strikethrough, Underline as UnderlineIcon,
   Link as LinkIcon, Quote, Code, List, ListOrdered, Heading2, X,
 } from 'lucide-react';
-import TurndownService from 'turndown';
 
-const turndown = new TurndownService({
-  headingStyle: 'atx',
-  codeBlockStyle: 'fenced',
-  bulletListMarker: '-',
-});
+type TurndownInstance = { turndown: (html: string) => string };
+let turndownPromise: Promise<TurndownInstance> | null = null;
+function getTurndown(): Promise<TurndownInstance> {
+  if (!turndownPromise) {
+    turndownPromise = import('turndown').then(({ default: TurndownService }) => new TurndownService({
+      headingStyle: 'atx',
+      codeBlockStyle: 'fenced',
+      bulletListMarker: '-',
+    }));
+  }
+  return turndownPromise;
+}
 
 interface RichTextEditorProps {
   readonly onChange: (markdown: string) => void;
@@ -34,6 +40,7 @@ function fileToDataUrl(file: File): Promise<string> {
 }
 
 export function RichTextEditor({ onChange, placeholder = 'Add description...' }: RichTextEditorProps) {
+  const latestCallIdRef = useRef(0);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -109,8 +116,15 @@ export function RichTextEditor({ onChange, placeholder = 'Add description...' }:
     },
     onUpdate: ({ editor: e }) => {
       const html = e.getHTML();
-      const md = html === '<p></p>' ? '' : turndown.turndown(html);
-      onChange(md);
+      if (html === '<p></p>') {
+        onChange('');
+        return;
+      }
+      const myCallId = ++latestCallIdRef.current;
+      getTurndown().then((td) => {
+        if (myCallId !== latestCallIdRef.current) return;
+        onChange(td.turndown(html));
+      });
     },
   });
 
