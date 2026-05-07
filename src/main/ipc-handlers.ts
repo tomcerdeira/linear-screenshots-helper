@@ -1,10 +1,11 @@
 import { ipcMain, BrowserWindow, shell, screen, app } from 'electron';
 import { IPC } from '../shared/ipc-channels';
-import type { IpcResult, LinearIssueResult, CreateIssueInput, AddCommentInput, ScreenshotData, RecentSelections, UpdateInfo } from '../shared/types';
-import { getApiKey, setApiKey, getEnabled, setEnabled, getHotkey, setHotkey, getCollectHotkey, setCollectHotkey, getOpenQueueHotkey, setOpenQueueHotkey, getRecentSelections, saveLastTeam, saveLastProject, saveRecentTicket, getOnboardingComplete, setOnboardingComplete } from '../services/store';
+import type { IpcResult, LinearIssueResult, CreateIssueInput, AddCommentInput, ScreenshotData, RecentSelections, UpdateState } from '../shared/types';
+import { getApiKey, setApiKey, getEnabled, setEnabled, getHotkey, setHotkey, getCollectHotkey, setCollectHotkey, getOpenQueueHotkey, setOpenQueueHotkey, getRecentSelections, saveLastTeam, saveLastProject, saveRecentTicket, getOnboardingComplete, setOnboardingComplete, getAutoCheckForUpdates, setAutoCheckForUpdates } from '../services/store';
 import { resetClient } from '../services/linear-client';
 import { getTeams, getProjects, getWorkflowStates, getLabels, getMembers, searchIssues, getRecentIssues, createIssue, addCommentWithScreenshot } from '../services/linear-issues';
 import { buildToastHtml } from './templates/toast';
+import { checkForUpdates, getUpdateState, startUpdateInstall } from './updater';
 
 let currentScreenshot: ScreenshotData | null = null;
 const screenshotQueue: ScreenshotData[] = [];
@@ -180,6 +181,12 @@ export function registerIpcHandlers(callbacks?: { onHotkeyChanged?: (hotkey: str
 
   ipcMain.handle(IPC.CHECK_FOR_UPDATES, () => wrapAsync(() => checkForUpdates()));
 
+  ipcMain.handle(IPC.GET_UPDATE_STATE, (): IpcResult<UpdateState> => {
+    return { success: true, data: getUpdateState() };
+  });
+
+  ipcMain.handle(IPC.START_UPDATE_INSTALL, () => wrapAsync(() => startUpdateInstall()));
+
   ipcMain.handle(IPC.OPEN_EXTERNAL, (_e, url: string): IpcResult => {
     shell.openExternal(url);
     return { success: true };
@@ -191,6 +198,15 @@ export function registerIpcHandlers(callbacks?: { onHotkeyChanged?: (hotkey: str
 
   ipcMain.handle(IPC.SET_ONBOARDING_COMPLETE, (_e, complete: boolean): IpcResult => {
     setOnboardingComplete(complete);
+    return { success: true };
+  });
+
+  ipcMain.handle(IPC.GET_AUTO_CHECK_FOR_UPDATES, (): IpcResult<boolean> => {
+    return { success: true, data: getAutoCheckForUpdates() };
+  });
+
+  ipcMain.handle(IPC.SET_AUTO_CHECK_FOR_UPDATES, (_e, enabled: boolean): IpcResult => {
+    setAutoCheckForUpdates(enabled);
     return { success: true };
   });
 }
@@ -239,82 +255,6 @@ export function showToastWindow(title: string, body: string, url: string): void 
   setTimeout(() => {
     if (!toast.isDestroyed()) toast.close();
   }, DURATION + 500);
-}
-
-const GITHUB_REPO = 'tomcerdeira/linear-screenshots-helper';
-
-function compareVersions(current: string, latest: string): boolean {
-  const parse = (v: string): number[] =>
-    v.replace(/^v/, '').split(/[.\-+]/).map((s) => {
-      const n = parseInt(s, 10);
-      return Number.isFinite(n) ? n : 0;
-    });
-  const c = parse(current);
-  const l = parse(latest);
-  for (let i = 0; i < 3; i++) {
-    if ((l[i] ?? 0) > (c[i] ?? 0)) return true;
-    if ((l[i] ?? 0) < (c[i] ?? 0)) return false;
-  }
-  return false;
-}
-
-async function checkForUpdates(): Promise<UpdateInfo> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-
-  let res: Response;
-  try {
-    res = await fetch(
-      `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`,
-      { signal: controller.signal, headers: { 'Accept': 'application/vnd.github+json' } },
-    );
-  } catch (err) {
-    clearTimeout(timeout);
-    if (err instanceof Error && err.name === 'AbortError') {
-      throw new Error('Update check timed out — please try again');
-    }
-    throw new Error('Could not reach GitHub');
-  }
-  clearTimeout(timeout);
-
-  if (res.status === 404) {
-    // No published (non-draft, non-prerelease) release exists yet.
-    const currentVersion = app.getVersion();
-    return {
-      hasUpdate: false,
-      currentVersion,
-      latestVersion: currentVersion,
-      downloadUrl: `https://github.com/${GITHUB_REPO}/releases`,
-      releaseUrl: `https://github.com/${GITHUB_REPO}/releases`,
-    };
-  }
-  if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
-
-  const release = await res.json() as { tag_name: string; html_url: string; assets: { browser_download_url: string; name: string }[] };
-  const latestVersion = release.tag_name.replace(/^v/, '');
-  const currentVersion = app.getVersion();
-
-  // Prefer a DMG matching the current architecture (arm64 / x64). Fall back
-  // to any DMG, then any ZIP, then the release page.
-  const arch = process.arch;
-  const archDmg = release.assets.find((a) => a.name.endsWith('.dmg') && a.name.includes(arch));
-  const anyDmg = release.assets.find((a) => a.name.endsWith('.dmg'));
-  const archZip = release.assets.find((a) => a.name.endsWith('.zip') && a.name.includes(arch));
-  const anyZip = release.assets.find((a) => a.name.endsWith('.zip'));
-  const downloadUrl =
-    archDmg?.browser_download_url
-    ?? anyDmg?.browser_download_url
-    ?? archZip?.browser_download_url
-    ?? anyZip?.browser_download_url
-    ?? release.html_url;
-
-  return {
-    hasUpdate: compareVersions(currentVersion, latestVersion),
-    currentVersion,
-    latestVersion,
-    downloadUrl,
-    releaseUrl: release.html_url,
-  };
 }
 
 async function wrapAsync<T>(fn: () => Promise<T>): Promise<IpcResult<T>> {

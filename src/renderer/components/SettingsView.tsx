@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, Keyboard, RefreshCw, Download, CheckCircle } from 'lucide-react';
+import { X, Check, Keyboard, RefreshCw, CheckCircle } from 'lucide-react';
 import { INPUT_CLASS, BACK_LINK_CLASS } from '../utils/styles';
 import { formatHotkeyForDisplay, keyEventToAccelerator } from '../utils/hotkey';
-import type { UpdateInfo } from '../../shared/types';
+import type { UpdateInfo, UpdateState, UpdateStatus } from '../../shared/types';
 
 interface SettingsViewProps {
   readonly onBack?: () => void;
@@ -132,7 +132,8 @@ export function SettingsView({ onBack, onClose, isStandalone = false }: Settings
   const [collectHotkey, setCollectHotkey] = useState('');
   const [openQueueHotkey, setOpenQueueHotkey] = useState('');
   const [appVersion, setAppVersion] = useState('');
-  const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'done' | 'error'>('idle');
+  const [autoCheckUpdates, setAutoCheckUpdates] = useState(true);
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>('idle');
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [updateError, setUpdateError] = useState('');
 
@@ -141,12 +142,14 @@ export function SettingsView({ onBack, onClose, isStandalone = false }: Settings
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const [keyResult, hotkeyResult, collectResult, openQueueResult, versionResult] = await Promise.all([
+      const [keyResult, hotkeyResult, collectResult, openQueueResult, versionResult, autoCheckResult, updateStateResult] = await Promise.all([
         window.api.getApiKey(),
         window.api.getHotkey(),
         window.api.getCollectHotkey(),
         window.api.getOpenQueueHotkey(),
         window.api.getAppVersion(),
+        window.api.getAutoCheckForUpdates(),
+        window.api.getUpdateState(),
       ]);
       if (cancelled) return;
       if (keyResult.success && keyResult.data) setMaskedKey(keyResult.data);
@@ -154,10 +157,46 @@ export function SettingsView({ onBack, onClose, isStandalone = false }: Settings
       if (collectResult.success && collectResult.data) setCollectHotkey(collectResult.data);
       if (openQueueResult.success && openQueueResult.data) setOpenQueueHotkey(openQueueResult.data);
       if (versionResult.success && versionResult.data) setAppVersion(versionResult.data);
+      if (autoCheckResult.success && typeof autoCheckResult.data === 'boolean') setAutoCheckUpdates(autoCheckResult.data);
+      if (updateStateResult.success && updateStateResult.data) applyUpdateState(updateStateResult.data);
     }
     load();
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (updateStatus !== 'checking' && updateStatus !== 'downloading') return;
+    const interval = window.setInterval(() => {
+      window.api.getUpdateState().then((result) => {
+        if (result.success && result.data) applyUpdateState(result.data);
+      });
+    }, 1500);
+    return () => window.clearInterval(interval);
+  }, [updateStatus]);
+
+  function applyUpdateState(state: UpdateState): void {
+    setAutoCheckUpdates(state.autoCheckEnabled);
+    setUpdateStatus(state.status);
+    setUpdateError(state.error ?? '');
+    if (state.latestVersion || state.releaseUrl) {
+      setUpdateInfo((current) => ({
+        hasUpdate: state.latestVersion ? state.latestVersion !== state.currentVersion : current?.hasUpdate ?? false,
+        currentVersion: state.currentVersion,
+        latestVersion: state.latestVersion ?? current?.latestVersion ?? state.currentVersion,
+        downloadUrl: current?.downloadUrl ?? state.releaseUrl ?? '',
+        releaseUrl: state.releaseUrl ?? current?.releaseUrl ?? '',
+        status: state.status,
+        canInstall: state.canInstall,
+        error: state.error,
+      }));
+    }
+  }
+
+  function applyUpdateInfo(info: UpdateInfo): void {
+    setUpdateInfo(info);
+    setUpdateStatus(info.status ?? (info.hasUpdate ? 'available' : 'not-available'));
+    setUpdateError(info.error ?? '');
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -194,8 +233,7 @@ export function SettingsView({ onBack, onClose, isStandalone = false }: Settings
     try {
       const result = await window.api.checkForUpdates();
       if (result.success && result.data) {
-        setUpdateInfo(result.data);
-        setUpdateStatus('done');
+        applyUpdateInfo(result.data);
       } else {
         setUpdateError(result.error ?? 'Failed to check for updates');
         setUpdateStatus('error');
@@ -204,6 +242,28 @@ export function SettingsView({ onBack, onClose, isStandalone = false }: Settings
       setUpdateError('Could not reach GitHub');
       setUpdateStatus('error');
     }
+  }
+
+  async function handleInstallUpdate() {
+    setUpdateStatus(updateStatus === 'ready' ? 'ready' : 'downloading');
+    setUpdateError('');
+    try {
+      const result = await window.api.startUpdateInstall();
+      if (result.success && result.data) {
+        applyUpdateInfo(result.data);
+      } else {
+        setUpdateError(result.error ?? 'Failed to start update');
+        setUpdateStatus('error');
+      }
+    } catch {
+      setUpdateError('Failed to start update');
+      setUpdateStatus('error');
+    }
+  }
+
+  async function handleAutoCheckChange(enabled: boolean) {
+    setAutoCheckUpdates(enabled);
+    await window.api.setAutoCheckForUpdates(enabled);
   }
 
   const closeButton = onClose && (
@@ -358,36 +418,70 @@ export function SettingsView({ onBack, onClose, isStandalone = false }: Settings
           <button
             type="button"
             onClick={handleCheckForUpdates}
-            disabled={updateStatus === 'checking'}
+            disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-xs text-content hover:border-border-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <RefreshCw className={`w-3 h-3 ${updateStatus === 'checking' ? 'animate-spin' : ''}`} />
-            {updateStatus === 'checking' ? 'Checking...' : 'Check for updates'}
+            <RefreshCw className={`w-3 h-3 ${updateStatus === 'checking' || updateStatus === 'downloading' ? 'animate-spin' : ''}`} />
+            {updateStatus === 'checking'
+              ? 'Checking...'
+              : updateStatus === 'downloading'
+                ? 'Downloading...'
+                : 'Check for updates'}
           </button>
         </div>
 
-        {updateStatus === 'done' && updateInfo && (
+        <label className="flex items-center justify-between gap-3 px-3 py-2 rounded-md bg-surface-input border border-border">
+          <span>
+            <span className="block text-xs text-content">Automatically check for updates</span>
+            <span className="block text-[11px] text-content-ghost">Download updates in the background and ask before restarting.</span>
+          </span>
+          <input
+            type="checkbox"
+            checked={autoCheckUpdates}
+            onChange={(e) => handleAutoCheckChange(e.target.checked)}
+            className="h-4 w-4 rounded border-border bg-surface text-linear-brand focus:ring-linear-brand"
+          />
+        </label>
+
+        {updateInfo && (
           updateInfo.hasUpdate ? (
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-md bg-linear-brand/10 border border-linear-brand/30">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-content">v{updateInfo.latestVersion} available</p>
-                <p className="text-[11px] text-content-ghost">You have v{updateInfo.currentVersion}</p>
+                <p className="text-sm text-content">
+                  {updateStatus === 'ready' ? 'Update ready to install' : `v${updateInfo.latestVersion} available`}
+                </p>
+                <p className="text-[11px] text-content-ghost">
+                  {updateStatus === 'downloading'
+                    ? 'Downloading in the background...'
+                    : updateStatus === 'unsupported'
+                      ? 'Open a packaged app build to install automatically.'
+                      : `You have v${updateInfo.currentVersion}`}
+                </p>
               </div>
               <button
                 type="button"
-                onClick={() => window.api.openExternal(updateInfo.downloadUrl)}
+                onClick={updateStatus === 'unsupported'
+                  ? () => window.api.openExternal(updateInfo.releaseUrl)
+                  : handleInstallUpdate}
+                disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-linear-brand text-white rounded-md text-xs font-medium hover:bg-linear-brand-hover transition-colors shrink-0"
               >
-                <Download className="w-3 h-3" />
-                Download
+                <RefreshCw className={`w-3 h-3 ${updateStatus === 'downloading' ? 'animate-spin' : ''}`} />
+                {updateStatus === 'ready'
+                  ? 'Restart & Install'
+                  : updateStatus === 'unsupported'
+                    ? 'View release'
+                    : updateStatus === 'downloading'
+                      ? 'Downloading...'
+                      : 'Install'}
               </button>
             </div>
-          ) : (
+          ) : updateStatus === 'not-available' ? (
             <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-feedback-success/10 border border-feedback-success/30">
               <CheckCircle className="w-4 h-4 text-feedback-success shrink-0" />
               <p className="text-xs text-content">You're on the latest version</p>
             </div>
-          )
+          ) : null
         )}
 
         {updateStatus === 'error' && (

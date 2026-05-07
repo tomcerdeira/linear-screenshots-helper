@@ -94,4 +94,28 @@ export interface UpdateInfo {
   readonly latestVersion: string;
   readonly downloadUrl: string;
   readonly releaseUrl: string;
+  readonly status?: UpdateStatus;
+  readonly canInstall?: boolean;
+  readonly error?: string;
+}
+
+export type UpdateStatus =
+  | 'idle'
+  | 'checking'
+  | 'downloading'
+  | 'ready'
+  | 'not-available'
+  | 'available'
+  | 'unsupported'
+  | 'error';
+
+export interface UpdateState {
+  readonly status: UpdateStatus;
+  readonly autoCheckEnabled: boolean;
+  readonly currentVersion: string;
+  readonly latestVersion?: string;
+  readonly releaseUrl?: string;
+  readonly canInstall: boolean;
+  readonly canAutoUpdate: boolean;
+  readonly error?: string;
 }

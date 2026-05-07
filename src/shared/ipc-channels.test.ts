@@ -29,5 +29,9 @@ describe('IPC channels', () => {
     expect(IPC.SHOW_TOAST).toBeDefined();
     expect(IPC.CREATE_ISSUE_BG).toBeDefined();
     expect(IPC.ADD_COMMENT_BG).toBeDefined();
+    expect(IPC.GET_UPDATE_STATE).toBeDefined();
+    expect(IPC.START_UPDATE_INSTALL).toBeDefined();
+    expect(IPC.GET_AUTO_CHECK_FOR_UPDATES).toBeDefined();
+    expect(IPC.SET_AUTO_CHECK_FOR_UPDATES).toBeDefined();
   });
 });

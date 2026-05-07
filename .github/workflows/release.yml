@@ -78,7 +78,7 @@ jobs:
           fi
           ZIP=$(find out/make -type f -name '*.zip' | head -n 1)
           if [ -n "$ZIP" ]; then
-            cp "$ZIP" "staged/LinearScreenshot-${{ matrix.arch }}.zip"
+            cp "$ZIP" "staged/LinearScreenshot-darwin-${{ matrix.arch }}.zip"
           fi
           ls -la staged
 

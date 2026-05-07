@@ -21,6 +21,8 @@ interface StoreSchema {
   lastProjectId: string;
   recentTickets: StoredTicket[];
   onboardingComplete: boolean;
+  autoCheckForUpdates: boolean;
+  lastPromptedUpdateVersion: string;
 }
 
 const store = new Store<StoreSchema>({
@@ -34,6 +36,8 @@ const store = new Store<StoreSchema>({
     lastProjectId: '',
     recentTickets: [],
     onboardingComplete: false,
+    autoCheckForUpdates: true,
+    lastPromptedUpdateVersion: '',
   },
 });
 
@@ -125,4 +129,20 @@ export function getOnboardingComplete(): boolean {
 
 export function setOnboardingComplete(complete: boolean): void {
   store.set('onboardingComplete', complete);
+}
+
+export function getAutoCheckForUpdates(): boolean {
+  return store.get('autoCheckForUpdates');
+}
+
+export function setAutoCheckForUpdates(enabled: boolean): void {
+  store.set('autoCheckForUpdates', enabled);
+}
+
+export function getLastPromptedUpdateVersion(): string {
+  return store.get('lastPromptedUpdateVersion');
+}
+
+export function setLastPromptedUpdateVersion(version: string): void {
+  store.set('lastPromptedUpdateVersion', version);
 }

@@ -7,9 +7,11 @@ import { captureScreenshot } from './screenshot';
 import { createPopupWindow, createSettingsWindow, getSettingsWindow } from './windows';
 import { registerIpcHandlers, setCurrentScreenshot, addToScreenshotQueue, getScreenshotQueueCount, flushScreenshotQueue, snapshotScreenshotQueue, clearActiveQueueSnapshot, showToastWindow } from './ipc-handlers';
 import { hasApiKey } from '../services/linear-client';
-import { getEnabled, getHotkey, getCollectHotkey, getOpenQueueHotkey, getRecentSelections, getOnboardingComplete, setOnboardingComplete } from '../services/store';
+import { getEnabled, getHotkey, getCollectHotkey, getOpenQueueHotkey, getRecentSelections, getOnboardingComplete, setOnboardingComplete, getAutoCheckForUpdates, getLastPromptedUpdateVersion, setLastPromptedUpdateVersion } from '../services/store';
 import { showOverlay, closeOverlay } from './overlay';
 import { getTeams, getProjects, getWorkflowStates, getLabels, getMembers } from '../services/linear-issues';
+import { initUpdater, checkForUpdates as runNativeUpdateCheck } from './updater';
+import { fetchLatestUpdateInfo } from './update-check';
 
 if (started) app.quit();
 
@@ -231,14 +233,39 @@ app.on('ready', () => {
   applyDockIcon();
 
   registerIpcHandlers({ onHotkeyChanged: registerHotkey });
+  initUpdater({ showToast: showToastWindow });
   createTray(trayCallbacks);
   if (getEnabled()) registerHotkeys();
   prefetchData();
+  scheduleUpdateCheck();
 
   if (!getOnboardingComplete()) {
     openSettings();
   }
 });
+
+function scheduleUpdateCheck(): void {
+  setTimeout(() => {
+    if (getAutoCheckForUpdates()) {
+      runNativeUpdateCheck({ automatic: true }).catch(() => {
+        // Startup checks should never interrupt capture flow.
+      });
+      return;
+    }
+
+    fetchLatestUpdateInfo().then((info) => {
+      if (!info.hasUpdate || getLastPromptedUpdateVersion() === info.latestVersion) return;
+      setLastPromptedUpdateVersion(info.latestVersion);
+      showToastWindow(
+        'Update available',
+        `v${info.latestVersion} is available — open Settings to install`,
+        '',
+      );
+    }).catch(() => {
+      // Non-blocking disabled-auto prompt; ignore transient network failures.
+    });
+  }, 7000);
+}
 
 function prefetchData(): void {
   if (!hasApiKey()) return;

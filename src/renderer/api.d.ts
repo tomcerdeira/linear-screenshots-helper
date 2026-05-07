@@ -1,4 +1,4 @@
-import type { IpcResult, ScreenshotData, LinearTeam, LinearProject, LinearWorkflowState, LinearLabel, LinearUser, LinearIssueResult, CreateIssueInput, AddCommentInput, AddCommentBgInput, RecentSelections, UpdateInfo } from '../shared/types';
+import type { IpcResult, ScreenshotData, LinearTeam, LinearProject, LinearWorkflowState, LinearLabel, LinearUser, LinearIssueResult, CreateIssueInput, AddCommentInput, AddCommentBgInput, RecentSelections, UpdateInfo, UpdateState } from '../shared/types';
 
 interface ElectronApi {
   getScreenshot(): Promise<IpcResult<ScreenshotData>>;
@@ -32,8 +32,12 @@ interface ElectronApi {
   createIssueBg(input: CreateIssueInput): Promise<IpcResult>;
   addCommentBg(input: AddCommentBgInput): Promise<IpcResult>;
   checkForUpdates(): Promise<IpcResult<UpdateInfo>>;
+  getUpdateState(): Promise<IpcResult<UpdateState>>;
+  startUpdateInstall(): Promise<IpcResult<UpdateInfo>>;
   getAppVersion(): Promise<IpcResult<string>>;
   openExternal(url: string): Promise<IpcResult>;
+  getAutoCheckForUpdates(): Promise<IpcResult<boolean>>;
+  setAutoCheckForUpdates(enabled: boolean): Promise<IpcResult>;
   getOnboardingComplete(): Promise<IpcResult<boolean>>;
   setOnboardingComplete(complete: boolean): Promise<IpcResult>;
   signalReady(): void;
