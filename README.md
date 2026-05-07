@@ -17,8 +17,9 @@ A lightweight macOS menu-bar app that lets you capture screenshots and instantly
 - **Click-outside-to-dismiss** — dim overlay that closes the popup on click
 - **Recent ticket memory** — last used team / project / labels and recently created tickets are remembered
 - **Multi-monitor support** — captures whichever screen your cursor is on
-- **Onboarding welcome flow** the first time you launch
-- **Auto-update check** — surfaced in Settings
+- **Standalone Settings window** with a redesigned, compact layout
+- **Onboarding welcome flow** the first time you launch (also available any time from the tray's _Welcome Guide_)
+- **Native auto-update** — silent background downloads with a "Restart & Install" prompt; manual "Check for updates" in Settings
 - **Encrypted API key storage** via macOS Keychain (`safeStorage`)
 - **Dark mode UI** matching Linear's aesthetic
 
@@ -53,12 +54,13 @@ Head to the [Releases](https://github.com/tomcerdeira/linear-screenshots-helper/
 
 1. Open the app — a tray icon appears in your menu bar (the dock is intentionally hidden)
 2. The first launch shows a short welcome guide that walks you through the API key and hotkey
-3. Or, right-click the tray icon → **Settings** at any time to:
+3. Or, click the tray icon → **Settings...** at any time to:
    - Paste your Linear API key (generate one at [linear.app/settings/account/security](https://linear.app/settings/account/security))
    - Customize the three global hotkeys
    - Toggle the app on/off
-   - Check for updates
-4. Press `Cmd+Shift+L` to capture your first screenshot
+   - Toggle automatic update checks and run a manual "Check for updates"
+4. The tray menu also exposes _Capture Screenshot_, _Welcome Guide_, _Enable/Disable_, and _Quit_
+5. Press `Cmd+Shift+L` to capture your first screenshot
 
 > **First-run permissions:** macOS will prompt for **Screen Recording** permission. Grant it in System Settings → Privacy & Security → Screen Recording, then re-launch the app.
 
@@ -123,7 +125,9 @@ Tests are co-located with source files as `*.test.ts` and use [Vitest](https://v
 
 ## Release
 
-Releases are produced by the [`Release`](./.github/workflows/release.yml) GitHub Actions workflow on any pushed tag matching `v*`. The workflow runs on `macos-latest` for both `arm64` and `x64`, signs and notarizes with the Apple Developer credentials stored in repository secrets, and uploads `.zip` and `.dmg` artifacts to a draft GitHub Release.
+Releases are produced by the [`Release`](./.github/workflows/release.yml) GitHub Actions workflow on any pushed tag matching `v*`. The workflow runs on `macos-latest` for both `arm64` and `x64`, signs and notarizes with the Apple Developer credentials stored in repository secrets, and uploads `.zip` and `.dmg` artifacts (with arch-suffixed filenames so both architectures coexist on the same release) to a draft GitHub Release.
+
+In-app updates are powered by Electron's native [`autoUpdater`](https://www.electronjs.org/docs/latest/api/auto-updater) against the [`update.electronjs.org`](https://update.electronjs.org/) feed for `tomcerdeira/linear-screenshots-helper`, so each published GitHub Release becomes available to existing installs automatically.
 
 To cut a release:
 
@@ -149,11 +153,13 @@ src/
   main/                # Electron main process
     index.ts             # App lifecycle, tray, global hotkeys, popup orchestration
     screenshot.ts        # Native screen capture (screencapture on macOS) + region-selection overlay
-    windows.ts           # Popup window factory
+    windows.ts           # Popup + standalone Settings window factories
     tray.ts              # System tray icon + context menu
     overlay.ts           # Per-display dim overlay (click-outside-to-dismiss)
     ipc-handlers.ts      # IPC bridge + multi-screenshot queue management
     preload.ts           # Context bridge exposing the typed `window.api`
+    update-check.ts      # GitHub releases lookup + version comparison
+    updater.ts           # Native Electron autoUpdater wiring (download + install prompt)
     templates/           # Raw HTML templates for toast and capture overlay
   services/            # Pure business logic (no Electron imports)
     linear-client.ts     # Linear SDK singleton
@@ -165,7 +171,8 @@ src/
   renderer/            # React UI (Vite + Tailwind)
     App.tsx              # Root component, view routing
     components/          # CreateIssueView, ExistingTicketSearch, Dropdown, RichTextEditor,
-                         # MetadataPill, LinearIcons, SettingsView, WelcomeView, …
+                         # MetadataPill, LinearIcons, SettingsView, WelcomeView,
+                         # TeamPicker, ProjectPicker, ScreenshotPreview, …
     hooks/               # useAsyncData, useScreenshot, useIssueSearch, …
     utils/               # emoji.ts, hotkey.ts, styles.ts (shared className constants)
     styles/globals.css   # Tailwind layer + custom rules (TipTap, scrollbar, …)
