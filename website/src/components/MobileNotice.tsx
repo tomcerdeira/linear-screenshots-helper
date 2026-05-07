@@ -5,7 +5,10 @@ import { m } from "framer-motion";
 
 export function MobileNotice() {
   return (
-    <div className="sm:hidden fixed inset-0 z-40 flex flex-col items-center justify-center px-6 text-center">
+    <div
+      data-capture-ignore="true"
+      className="sm:hidden fixed inset-0 z-40 flex flex-col items-center justify-center px-6 text-center"
+    >
       <m.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
