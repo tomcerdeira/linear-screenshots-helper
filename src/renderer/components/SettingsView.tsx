@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, Keyboard, RefreshCw, CheckCircle } from 'lucide-react';
+import { X, Check, Keyboard, RefreshCw, CheckCircle, Info } from 'lucide-react';
 import { INPUT_CLASS, BACK_LINK_CLASS } from '../utils/styles';
 import { formatHotkeyForDisplay, keyEventToAccelerator } from '../utils/hotkey';
 import type { UpdateInfo, UpdateState, UpdateStatus } from '../../shared/types';
@@ -12,13 +12,13 @@ interface SettingsViewProps {
 
 interface HotkeyRecorderProps {
   readonly label: string;
-  readonly description: string;
+  readonly hint: string;
   readonly value: string;
   readonly defaultValue: string;
   readonly onSave: (hotkey: string) => Promise<void>;
 }
 
-function HotkeyRecorder({ label, description, value, defaultValue, onSave }: HotkeyRecorderProps) {
+function HotkeyRecorder({ label, hint, value, defaultValue, onSave }: HotkeyRecorderProps) {
   const [recording, setRecording] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
 
@@ -55,41 +55,30 @@ function HotkeyRecorder({ label, description, value, defaultValue, onSave }: Hot
   const displayValue = formatHotkeyForDisplay(pending ?? value);
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium text-content-secondary">{label}</label>
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-1.5 shrink-0">
+        <label className="text-xs font-medium text-content-secondary">{label}</label>
+        <div className="relative group">
+          <Info className="w-3 h-3 text-content-ghost cursor-help" />
+          <div className="absolute left-0 top-full mt-1.5 px-2.5 py-1.5 rounded-md bg-surface-raised border border-border text-[11px] text-content-secondary whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg z-50">
+            {hint}
+          </div>
+        </div>
+      </div>
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            if (recording) { setRecording(false); }
-            else { setPending(null); setRecording(true); }
-          }}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm transition-colors ${
-            recording
-              ? 'bg-linear-brand/10 border-linear-brand text-content animate-pulse'
-              : 'bg-surface-input border-border text-content hover:border-border-hover'
-          }`}
-        >
-          <Keyboard className="w-3.5 h-3.5 text-content-muted" />
-          {recording ? 'Press keys...' : displayValue}
-          {!recording && !pending && value === defaultValue && (
-            <span className="text-[10px] text-content-ghost">default</span>
-          )}
-        </button>
-
         {pending && !recording && (
           <>
             <button
               type="button"
               onClick={handleSave}
-              className="px-2 py-1 bg-linear-brand text-white rounded-md text-xs font-medium hover:bg-linear-brand-hover transition-colors"
+              className="px-2 py-0.5 bg-linear-brand text-white rounded-md text-[11px] font-medium hover:bg-linear-brand-hover transition-colors"
             >
               Apply
             </button>
             <button
               type="button"
               onClick={() => setPending(null)}
-              className="px-2 py-1 text-content-ghost text-xs hover:text-content transition-colors"
+              className="px-1 py-0.5 text-content-ghost text-[11px] hover:text-content transition-colors"
             >
               Cancel
             </button>
@@ -101,7 +90,7 @@ function HotkeyRecorder({ label, description, value, defaultValue, onSave }: Hot
             <button
               type="button"
               onClick={() => setRecording(true)}
-              className="text-xs text-content-ghost hover:text-content transition-colors"
+              className="text-[11px] text-content-ghost hover:text-content transition-colors"
             >
               Change
             </button>
@@ -109,15 +98,30 @@ function HotkeyRecorder({ label, description, value, defaultValue, onSave }: Hot
               <button
                 type="button"
                 onClick={() => onSave(defaultValue)}
-                className="text-xs text-content-ghost hover:text-content transition-colors"
+                className="text-[11px] text-content-ghost hover:text-content transition-colors"
               >
                 Reset
               </button>
             )}
           </>
         )}
+
+        <button
+          type="button"
+          onClick={() => {
+            if (recording) { setRecording(false); }
+            else { setPending(null); setRecording(true); }
+          }}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs transition-colors ${
+            recording
+              ? 'bg-linear-brand/10 border-linear-brand text-content animate-pulse'
+              : 'bg-surface-input border-border text-content hover:border-border-hover'
+          }`}
+        >
+          <Keyboard className="w-3 h-3 text-content-muted" />
+          {recording ? 'Press keys...' : displayValue}
+        </button>
       </div>
-      <p className="text-[11px] text-content-ghost">{description}</p>
     </div>
   );
 }
@@ -277,8 +281,8 @@ export function SettingsView({ onBack, onClose, isStandalone = false }: Settings
     </button>
   );
 
-  const headerPaddingClass = isStandalone ? 'px-6 pt-2 pb-4' : 'p-5';
-  const bodyPaddingClass = isStandalone ? 'px-6 pb-6' : 'px-5 pb-5';
+  const headerPaddingClass = isStandalone ? 'px-6 pt-1 pb-3' : 'p-5';
+  const bodyPaddingClass = isStandalone ? 'px-6 pb-5' : 'px-5 pb-5';
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -293,36 +297,26 @@ export function SettingsView({ onBack, onClose, isStandalone = false }: Settings
         </h2>
         {closeButton}
       </div>
-      <div className={`flex flex-col gap-4 ${bodyPaddingClass} overflow-y-auto flex-1 min-h-0`}>
-
+      <div className={`flex flex-col gap-3 ${bodyPaddingClass} overflow-y-auto flex-1 min-h-0`}>
 
       {/* API Key */}
-      <div className="flex flex-col gap-3">
-        <label className="block text-xs font-medium text-content-secondary">
-          Linear API Key
-        </label>
-
+      <div className="flex flex-col gap-2">
         {hasKey && !editing ? (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-md bg-surface-input border border-border">
-              <div className="w-8 h-8 rounded-full bg-feedback-success/15 flex items-center justify-center shrink-0">
-                <Check className="w-4 h-4 text-feedback-success" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-content">Connected</p>
-                <p className="text-xs text-content-ghost font-mono truncate">{maskedKey}</p>
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-content-secondary shrink-0">Linear API Key</label>
+            <Check className="w-3.5 h-3.5 text-feedback-success shrink-0" />
+            <span className="text-xs text-content-ghost font-mono truncate">{maskedKey}</span>
             <button
               type="button"
               onClick={() => { setEditing(true); setMessage(null); }}
-              className="text-xs text-content-ghost hover:text-content transition-colors text-left"
+              className="ml-auto text-xs text-content-ghost hover:text-content transition-colors shrink-0"
             >
-              Change API key
+              Change
             </button>
           </div>
         ) : (
           <form onSubmit={handleSave} className="flex flex-col gap-2.5">
+            <label className="block text-xs font-medium text-content-secondary">Linear API Key</label>
             <input
               type="password"
               value={apiKey}
@@ -371,10 +365,11 @@ export function SettingsView({ onBack, onClose, isStandalone = false }: Settings
       </div>
 
       {/* Hotkeys */}
-      <div className="border-t border-border pt-3 flex flex-col gap-3">
+      <div className="border-t border-border pt-2.5 flex flex-col gap-2">
+        <label className="block text-xs font-medium text-content-secondary">Keyboard Shortcuts</label>
         <HotkeyRecorder
-          label="Capture Screenshot"
-          description="Takes a screenshot and opens the issue creation form."
+          label="Capture"
+          hint="Takes a screenshot and opens the issue form"
           value={hotkey}
           defaultValue="CommandOrControl+Shift+L"
           onSave={async (h) => {
@@ -382,10 +377,9 @@ export function SettingsView({ onBack, onClose, isStandalone = false }: Settings
             if (result.success) setHotkey(h);
           }}
         />
-
         <HotkeyRecorder
-          label="Collect Screenshot"
-          description="Takes a screenshot and adds it to the queue without opening the form."
+          label="Collect to queue"
+          hint="Takes a screenshot and adds it to the queue silently"
           value={collectHotkey}
           defaultValue="Alt+CommandOrControl+Shift+L"
           onSave={async (h) => {
@@ -393,10 +387,9 @@ export function SettingsView({ onBack, onClose, isStandalone = false }: Settings
             if (result.success) setCollectHotkey(h);
           }}
         />
-
         <HotkeyRecorder
-          label="Open Queued Issue"
-          description="Opens the issue creation form with all collected screenshots attached."
+          label="Open queued issue"
+          hint="Opens the form with all queued screenshots attached"
           value={openQueueHotkey}
           defaultValue="CommandOrControl+Shift+Return"
           onSave={async (h) => {
@@ -405,56 +398,55 @@ export function SettingsView({ onBack, onClose, isStandalone = false }: Settings
           }}
         />
       </div>
+      </div>
 
-      {/* Updates */}
-      <div className="border-t border-border pt-3 flex flex-col gap-2">
+      {/* Updates — sticky bottom */}
+      <div className={`${isStandalone ? 'px-6 pb-5' : 'px-5 pb-5'} mt-auto shrink-0 border-t border-border pt-2.5 flex flex-col gap-2`}>
         <div className="flex items-center justify-between">
           <div>
             <label className="text-xs font-medium text-content-secondary">Updates</label>
             {appVersion && (
-              <p className="text-[11px] text-content-ghost">v{appVersion}</p>
+              <span className="text-[11px] text-content-ghost ml-1.5">v{appVersion}</span>
             )}
           </div>
-          <button
-            type="button"
-            onClick={handleCheckForUpdates}
-            disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-xs text-content hover:border-border-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <RefreshCw className={`w-3 h-3 ${updateStatus === 'checking' || updateStatus === 'downloading' ? 'animate-spin' : ''}`} />
-            {updateStatus === 'checking'
-              ? 'Checking...'
-              : updateStatus === 'downloading'
-                ? 'Downloading...'
-                : 'Check for updates'}
-          </button>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-1.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={autoCheckUpdates}
+                onChange={(e) => handleAutoCheckChange(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-border bg-surface text-linear-brand focus:ring-linear-brand"
+              />
+              <span className="text-[11px] text-content-ghost">Auto-check</span>
+            </label>
+            <button
+              type="button"
+              onClick={handleCheckForUpdates}
+              disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border text-[11px] text-content hover:border-border-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw className={`w-3 h-3 ${updateStatus === 'checking' || updateStatus === 'downloading' ? 'animate-spin' : ''}`} />
+              {updateStatus === 'checking'
+                ? 'Checking...'
+                : updateStatus === 'downloading'
+                  ? 'Downloading...'
+                  : 'Check'}
+            </button>
+          </div>
         </div>
-
-        <label className="flex items-center justify-between gap-3 px-3 py-2 rounded-md bg-surface-input border border-border">
-          <span>
-            <span className="block text-xs text-content">Automatically check for updates</span>
-            <span className="block text-[11px] text-content-ghost">Download updates in the background and ask before restarting.</span>
-          </span>
-          <input
-            type="checkbox"
-            checked={autoCheckUpdates}
-            onChange={(e) => handleAutoCheckChange(e.target.checked)}
-            className="h-4 w-4 rounded border-border bg-surface text-linear-brand focus:ring-linear-brand"
-          />
-        </label>
 
         {updateInfo && (
           updateInfo.hasUpdate ? (
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-md bg-linear-brand/10 border border-linear-brand/30">
+            <div className="flex items-center gap-3 px-3 py-1.5 rounded-md bg-linear-brand/10 border border-linear-brand/30">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-content">
+                <p className="text-xs text-content">
                   {updateStatus === 'ready' ? 'Update ready to install' : `v${updateInfo.latestVersion} available`}
                 </p>
                 <p className="text-[11px] text-content-ghost">
                   {updateStatus === 'downloading'
                     ? 'Downloading in the background...'
                     : updateStatus === 'unsupported'
-                      ? 'Open a packaged app build to install automatically.'
+                      ? 'Open a packaged build to install automatically.'
                       : `You have v${updateInfo.currentVersion}`}
                 </p>
               </div>
@@ -464,7 +456,7 @@ export function SettingsView({ onBack, onClose, isStandalone = false }: Settings
                   ? () => window.api.openExternal(updateInfo.releaseUrl)
                   : handleInstallUpdate}
                 disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-linear-brand text-white rounded-md text-xs font-medium hover:bg-linear-brand-hover transition-colors shrink-0"
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-linear-brand text-white rounded-md text-[11px] font-medium hover:bg-linear-brand-hover transition-colors shrink-0"
               >
                 <RefreshCw className={`w-3 h-3 ${updateStatus === 'downloading' ? 'animate-spin' : ''}`} />
                 {updateStatus === 'ready'
@@ -477,17 +469,16 @@ export function SettingsView({ onBack, onClose, isStandalone = false }: Settings
               </button>
             </div>
           ) : updateStatus === 'not-available' ? (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-feedback-success/10 border border-feedback-success/30">
-              <CheckCircle className="w-4 h-4 text-feedback-success shrink-0" />
-              <p className="text-xs text-content">You're on the latest version</p>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-feedback-success/10 border border-feedback-success/30">
+              <CheckCircle className="w-3.5 h-3.5 text-feedback-success shrink-0" />
+              <p className="text-[11px] text-content">You're on the latest version</p>
             </div>
           ) : null
         )}
 
         {updateStatus === 'error' && (
-          <p className="text-xs text-feedback-error">{updateError}</p>
+          <p className="text-[11px] text-feedback-error">{updateError}</p>
         )}
-      </div>
       </div>
     </div>
   );
