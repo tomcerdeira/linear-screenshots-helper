@@ -29,6 +29,10 @@ function ViewWrapper({ k, children }: { readonly k: string; readonly children: R
 
 type View = 'create' | 'existing' | 'settings';
 
+const IS_STANDALONE =
+  typeof window !== 'undefined' &&
+  new URLSearchParams(window.location.search).get('windowMode') === 'standalone';
+
 export function App() {
   const { screenshot, loading, error } = useScreenshot();
   const [view, setView] = useState<View>('create');
@@ -94,7 +98,11 @@ export function App() {
           )}
           {view === 'settings' && (
             <ViewWrapper k="settings">
-              <SettingsView onBack={() => setView('create')} onClose={handleClose} />
+              <SettingsView
+                onBack={() => setView('create')}
+                onClose={IS_STANDALONE ? undefined : handleClose}
+                isStandalone={IS_STANDALONE}
+              />
             </ViewWrapper>
           )}
         </AnimatePresence>
@@ -113,7 +121,10 @@ export function App() {
     }
     return (
       <Shell>
-        <SettingsView onClose={handleClose} />
+        <SettingsView
+          onClose={IS_STANDALONE ? undefined : handleClose}
+          isStandalone={IS_STANDALONE}
+        />
       </Shell>
     );
   }
@@ -140,7 +151,11 @@ export function App() {
         )}
         {view === 'settings' && (
           <ViewWrapper k="settings">
-            <SettingsView onBack={() => setView('create')} onClose={handleClose} />
+            <SettingsView
+              onBack={() => setView('create')}
+              onClose={IS_STANDALONE ? undefined : handleClose}
+              isStandalone={IS_STANDALONE}
+            />
           </ViewWrapper>
         )}
       </AnimatePresence>
@@ -158,7 +173,13 @@ function Shell({ children }: { readonly children: React.ReactNode }) {
 
   return (
     <div className="h-screen flex flex-col bg-surface overflow-hidden" onClick={handleClick}>
-      {children}
+      {IS_STANDALONE && (
+        <div
+          className="h-7 shrink-0 select-none"
+          style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+        />
+      )}
+      <div className="flex-1 min-h-0 overflow-hidden">{children}</div>
     </div>
   );
 }

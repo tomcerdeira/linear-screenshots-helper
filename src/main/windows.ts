@@ -6,9 +6,26 @@ declare const MAIN_WINDOW_VITE_NAME: string;
 
 const POPUP_WIDTH = 660;
 const POPUP_HEIGHT = 440;
-const SETTINGS_HEIGHT = 560;
+
+const SETTINGS_WIDTH = 720;
+const SETTINGS_WINDOW_HEIGHT = 620;
+const SETTINGS_MIN_WIDTH = 600;
+const SETTINGS_MIN_HEIGHT = 500;
 
 let popupWindow: BrowserWindow | null = null;
+let settingsWindow: BrowserWindow | null = null;
+
+function loadRenderer(win: BrowserWindow, params?: Record<string, string>): void {
+  const search = params ? `?${new URLSearchParams(params).toString()}` : '';
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    win.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}${search}`);
+  } else {
+    win.loadFile(
+      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+      search ? { search } : undefined,
+    );
+  }
+}
 
 export function createPopupWindow(options?: { height?: number }): BrowserWindow {
   if (popupWindow && !popupWindow.isDestroyed()) {
@@ -42,13 +59,7 @@ export function createPopupWindow(options?: { height?: number }): BrowserWindow 
 
   popupWindow.setAlwaysOnTop(true, 'screen-saver');
 
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    popupWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
-  } else {
-    popupWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-    );
-  }
+  loadRenderer(popupWindow);
 
   popupWindow.on('closed', () => {
     popupWindow = null;
@@ -62,4 +73,47 @@ export function closePopupWindow(): void {
     popupWindow.close();
     popupWindow = null;
   }
+}
+
+export function createSettingsWindow(): BrowserWindow {
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    if (settingsWindow.isMinimized()) settingsWindow.restore();
+    settingsWindow.show();
+    settingsWindow.focus();
+    return settingsWindow;
+  }
+
+  settingsWindow = new BrowserWindow({
+    width: SETTINGS_WIDTH,
+    height: SETTINGS_WINDOW_HEIGHT,
+    minWidth: SETTINGS_MIN_WIDTH,
+    minHeight: SETTINGS_MIN_HEIGHT,
+    show: false,
+    frame: true,
+    titleBarStyle: 'hiddenInset',
+    resizable: true,
+    minimizable: true,
+    maximizable: true,
+    skipTaskbar: false,
+    alwaysOnTop: false,
+    backgroundColor: '#1f2023',
+    title: 'Linear Screenshot',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  loadRenderer(settingsWindow, { windowMode: 'standalone' });
+
+  settingsWindow.on('closed', () => {
+    settingsWindow = null;
+  });
+
+  return settingsWindow;
+}
+
+export function getSettingsWindow(): BrowserWindow | null {
+  return settingsWindow && !settingsWindow.isDestroyed() ? settingsWindow : null;
 }

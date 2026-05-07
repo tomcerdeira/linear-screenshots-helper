@@ -54,7 +54,7 @@ Head to the [Releases](https://github.com/tomcerdeira/linear-screenshots-helper/
 1. Open the app — a tray icon appears in your menu bar (the dock is intentionally hidden)
 2. The first launch shows a short welcome guide that walks you through the API key and hotkey
 3. Or, right-click the tray icon → **Settings** at any time to:
-   - Paste your Linear API key (generate one at [linear.app/settings/api](https://linear.app/settings/api))
+   - Paste your Linear API key (generate one at [linear.app/settings/account/security](https://linear.app/settings/account/security))
    - Customize the three global hotkeys
    - Toggle the app on/off
    - Check for updates

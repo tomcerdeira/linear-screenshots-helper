@@ -1,9 +1,10 @@
-import { app, globalShortcut, systemPreferences, dialog, shell, ipcMain } from 'electron';
+import { app, globalShortcut, systemPreferences, dialog, shell, ipcMain, nativeImage } from 'electron';
+import path from 'node:path';
 import { IPC } from '../shared/ipc-channels';
 import started from 'electron-squirrel-startup';
 import { createTray, updateTrayMenu } from './tray';
 import { captureScreenshot } from './screenshot';
-import { createPopupWindow } from './windows';
+import { createPopupWindow, createSettingsWindow, getSettingsWindow } from './windows';
 import { registerIpcHandlers, setCurrentScreenshot, addToScreenshotQueue, getScreenshotQueueCount, flushScreenshotQueue, snapshotScreenshotQueue, clearActiveQueueSnapshot, showToastWindow } from './ipc-handlers';
 import { hasApiKey } from '../services/linear-client';
 import { getEnabled, getHotkey, getCollectHotkey, getOpenQueueHotkey, getRecentSelections, getOnboardingComplete, setOnboardingComplete } from '../services/store';
@@ -11,10 +12,6 @@ import { showOverlay, closeOverlay } from './overlay';
 import { getTeams, getProjects, getWorkflowStates, getLabels, getMembers } from '../services/linear-issues';
 
 if (started) app.quit();
-
-if (process.platform === 'darwin') {
-  app.dock?.hide();
-}
 
 const SCREEN_SETTINGS_URL = 'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture';
 
@@ -184,27 +181,34 @@ function openWelcome(): void {
   openSettings();
 }
 
+function updateDockVisibility(): void {
+  if (process.platform !== 'darwin') return;
+  const settings = getSettingsWindow();
+  if (settings) {
+    void app.dock?.show();
+  } else {
+    app.dock?.hide();
+  }
+}
+
 function openSettings(): void {
   setCurrentScreenshot(null);
 
-  const popup = createPopupWindow({ height: 560 });
-  let ready = false;
-  const dismiss = () => { if (ready && !popup.isDestroyed()) popup.close(); };
-  showOverlay(dismiss);
-  popup.on('closed', () => closeOverlay());
-  popup.webContents.once('did-finish-load', () => {
-    popup.webContents.send('navigate', 'settings');
+  const win = createSettingsWindow();
+  updateDockVisibility();
+
+  win.webContents.once('did-finish-load', () => {
+    win.webContents.send('navigate', 'settings');
   });
-  void waitForRendererReady(popup).then(() => {
-    if (popup.isDestroyed()) return;
-    popup.setOpacity(0);
-    popup.show();
-    popup.focus();
-    fadeInWindow(popup);
-    setTimeout(() => {
-      ready = true;
-      popup.on('blur', dismiss);
-    }, 200);
+
+  win.once('closed', () => {
+    updateDockVisibility();
+  });
+
+  void waitForRendererReady(win).then(() => {
+    if (win.isDestroyed()) return;
+    win.show();
+    win.focus();
   });
 }
 
@@ -213,7 +217,19 @@ function registerHotkey(): void {
   registerHotkeys();
 }
 
+function applyDockIcon(): void {
+  if (process.platform !== 'darwin' || app.isPackaged) return;
+  const iconPath = path.join(app.getAppPath(), 'assets', 'icon.png');
+  const icon = nativeImage.createFromPath(iconPath);
+  if (!icon.isEmpty()) app.dock?.setIcon(icon);
+}
+
 app.on('ready', () => {
+  if (process.platform === 'darwin') {
+    app.dock?.hide();
+  }
+  applyDockIcon();
+
   registerIpcHandlers({ onHotkeyChanged: registerHotkey });
   createTray(trayCallbacks);
   if (getEnabled()) registerHotkeys();

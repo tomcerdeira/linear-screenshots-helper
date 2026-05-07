@@ -7,6 +7,7 @@ import type { UpdateInfo } from '../../shared/types';
 interface SettingsViewProps {
   readonly onBack?: () => void;
   readonly onClose?: () => void;
+  readonly isStandalone?: boolean;
 }
 
 interface HotkeyRecorderProps {
@@ -121,7 +122,7 @@ function HotkeyRecorder({ label, description, value, defaultValue, onSave }: Hot
   );
 }
 
-export function SettingsView({ onBack, onClose }: SettingsViewProps) {
+export function SettingsView({ onBack, onClose, isStandalone = false }: SettingsViewProps) {
   const [apiKey, setApiKey] = useState('');
   const [maskedKey, setMaskedKey] = useState('');
   const [editing, setEditing] = useState(false);
@@ -216,17 +217,24 @@ export function SettingsView({ onBack, onClose }: SettingsViewProps) {
     </button>
   );
 
+  const headerPaddingClass = isStandalone ? 'px-6 pt-2 pb-4' : 'p-5';
+  const bodyPaddingClass = isStandalone ? 'px-6 pb-6' : 'px-5 pb-5';
+
   return (
-    <div className="flex flex-col gap-4 p-5 overflow-y-auto h-full">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className={`${headerPaddingClass} flex items-center gap-2 shrink-0`}>
         {onBack && (
           <button type="button" onClick={onBack} className={BACK_LINK_CLASS}>
             &larr; Back
           </button>
         )}
-        <h2 className="text-sm font-semibold text-content">Settings</h2>
+        <h2 className={`font-semibold text-content ${isStandalone ? 'text-base tracking-tight' : 'text-sm'}`}>
+          Settings
+        </h2>
         {closeButton}
       </div>
+      <div className={`flex flex-col gap-4 ${bodyPaddingClass} overflow-y-auto flex-1 min-h-0`}>
+
 
       {/* API Key */}
       <div className="flex flex-col gap-3">
@@ -267,7 +275,7 @@ export function SettingsView({ onBack, onClose }: SettingsViewProps) {
               Create a personal API key in Linear Settings.{' '}
               <button
                 type="button"
-                onClick={() => window.api.openExternal('https://linear.app/settings/api')}
+                onClick={() => window.api.openExternal('https://linear.app/settings/account/security')}
                 className="text-linear-brand hover:underline"
               >
                 Open Linear Settings &rarr;
@@ -385,6 +393,7 @@ export function SettingsView({ onBack, onClose }: SettingsViewProps) {
         {updateStatus === 'error' && (
           <p className="text-xs text-feedback-error">{updateError}</p>
         )}
+      </div>
       </div>
     </div>
   );
