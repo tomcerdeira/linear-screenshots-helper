@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from 'react';
-import { X, Image, Paperclip, User, Tag } from 'lucide-react';
+import { X, Image, Paperclip, User, Tag, GitBranch } from 'lucide-react';
 import { TeamPicker } from './TeamPicker';
 import { ProjectPicker } from './ProjectPicker';
 import { ScreenshotPreview } from './ScreenshotPreview';
 import { MetadataPill, MultiMetadataPill } from './MetadataPill';
+import type { LinearIssueResult } from '../../shared/types';
+import type { RichTextEditorHandle } from './RichTextEditor';
 
 const RichTextEditor = lazy(() =>
   import('./RichTextEditor').then((m) => ({ default: m.RichTextEditor })),
@@ -28,13 +30,16 @@ interface CreateIssueViewProps {
   readonly additionalScreenshots?: string[];
   readonly onClose: () => void;
   readonly onSwitchToExisting: () => void;
+  readonly parentIssue?: LinearIssueResult;
+  readonly forcedTeamId?: string;
 }
 
 function SkeletonPill() {
   return <span className="skeleton-pill inline-block w-[72px] h-[26px] rounded-full" />;
 }
 
-export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onClose, onSwitchToExisting }: CreateIssueViewProps) {
+export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onClose, onSwitchToExisting, parentIssue, forcedTeamId }: CreateIssueViewProps) {
+  const isSubIssue = Boolean(parentIssue);
   const { lastTeamId, lastProjectId, loading: loadingRecent } = useRecentSelections();
   const [teamId, setTeamId] = useState('');
   const [projectId, setProjectId] = useState('');
@@ -49,6 +54,7 @@ export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onCl
   const [error, setError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [showScreenshot, setShowScreenshot] = useState(true);
+  const editorRef = React.useRef<RichTextEditorHandle>(null);
 
   const { workflowStates, labels, members, loading: loadingTeamData } = useTeamData(teamId);
 
@@ -78,14 +84,19 @@ export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onCl
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [onClose, teamId, title, members]);
 
-  // Load last selections
+  // Load last selections (or forced team for sub-issue)
   useEffect(() => {
+    if (forcedTeamId) {
+      setTeamId(forcedTeamId);
+      setInitialized(true);
+      return;
+    }
     if (!loadingRecent && !initialized) {
       if (lastTeamId) setTeamId(lastTeamId);
       if (lastProjectId) setProjectId(lastProjectId);
       setInitialized(true);
     }
-  }, [loadingRecent, lastTeamId, lastProjectId, initialized]);
+  }, [loadingRecent, lastTeamId, lastProjectId, initialized, forcedTeamId]);
 
   // Auto-select backlog state when team data loads
   useEffect(() => {
@@ -132,6 +143,7 @@ export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onCl
       description: form.description.trim(),
       screenshotDataUrl,
       additionalScreenshotDataUrls: additionalScreenshots,
+      parentId: parentIssue?.id,
     });
     onClose();
   }
@@ -174,19 +186,32 @@ export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onCl
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-2.5 shrink-0 drag-handle">
         <div className="no-drag flex items-center gap-2 flex-1 min-w-0">
-          <TeamPicker value={teamId} onChange={handleTeamChange} variant="compact" />
-          <span className="text-content-ghost text-xs">&rsaquo;</span>
-          <span className="text-[13px] text-content font-medium">New issue</span>
+          {isSubIssue && parentIssue ? (
+            <div className="flex items-center gap-1.5 min-w-0">
+              <GitBranch className="w-3.5 h-3.5 text-content-ghost shrink-0" />
+              <span className="text-[13px] text-content font-medium shrink-0">New sub-issue of</span>
+              <span className="text-xs font-mono text-linear-brand shrink-0">{parentIssue.identifier}</span>
+              <span className="text-[13px] text-content-secondary truncate">{parentIssue.title}</span>
+            </div>
+          ) : (
+            <>
+              <TeamPicker value={teamId} onChange={handleTeamChange} variant="compact" />
+              <span className="text-content-ghost text-xs">&rsaquo;</span>
+              <span className="text-[13px] text-content font-medium">New issue</span>
+            </>
+          )}
         </div>
         <div className="no-drag flex items-center gap-1">
-          <button
-            type="button"
-            onClick={onSwitchToExisting}
-            className="px-2 py-1 text-[11px] text-content-ghost hover:text-content hover:bg-surface-input rounded transition-colors flex items-center gap-1"
-          >
-            Attach to existing
-            <kbd className="inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded bg-surface-input border border-border-subtle text-[9px] font-medium text-content-muted leading-none uppercase">E</kbd>
-          </button>
+          {!isSubIssue && (
+            <button
+              type="button"
+              onClick={onSwitchToExisting}
+              className="px-2 py-1 text-[11px] text-content-ghost hover:text-content hover:bg-surface-input rounded transition-colors flex items-center gap-1"
+            >
+              Attach to existing
+              <kbd className="inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded bg-surface-input border border-border-subtle text-[9px] font-medium text-content-muted leading-none uppercase">E</kbd>
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -210,13 +235,19 @@ export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onCl
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Issue title"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+              e.preventDefault();
+              editorRef.current?.focus();
+            }
+          }}
+          placeholder={isSubIssue ? 'Sub-issue title' : 'Issue title'}
           className="w-full bg-transparent border-none text-[18px] font-medium text-content placeholder-content-placeholder focus:outline-none p-0 mb-1 ring-0 focus:ring-0"
           autoFocus
         />
 
         <Suspense fallback={<EditorFallback />}>
-          <RichTextEditor onChange={setDescription} />
+          <RichTextEditor ref={editorRef} onChange={setDescription} />
         </Suspense>
 
         {(() => {
@@ -337,7 +368,7 @@ export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onCl
           disabled={!teamId || !title.trim()}
           className="px-4 py-1.5 bg-linear-brand text-white rounded-full text-[13px] font-medium hover:bg-linear-brand-hover transition-colors disabled:opacity-35 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-linear-brand/50 focus-visible:ring-offset-1 focus-visible:ring-offset-surface"
         >
-          Create issue
+          {isSubIssue ? 'Create sub-issue' : 'Create issue'}
         </button>
       </div>
     </div>

@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('api', {
   getMembers: (teamId: string) => ipcRenderer.invoke(IPC.GET_MEMBERS, teamId),
   searchIssues: (query: string) => ipcRenderer.invoke(IPC.SEARCH_ISSUES, query),
   getRecentIssues: () => ipcRenderer.invoke(IPC.GET_RECENT_ISSUES),
+  getIssueTeamId: (issueId: string) => ipcRenderer.invoke(IPC.GET_ISSUE_TEAM_ID, issueId),
   createIssue: (input: unknown) => ipcRenderer.invoke(IPC.CREATE_ISSUE, input),
   addComment: (input: unknown) => ipcRenderer.invoke(IPC.ADD_COMMENT, input),
   getApiKey: () => ipcRenderer.invoke(IPC.GET_API_KEY),

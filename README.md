@@ -2,7 +2,7 @@
 
 A lightweight macOS menu-bar app that lets you capture screenshots and instantly create or attach them to [Linear](https://linear.app) tickets — without ever leaving the keyboard.
 
-> Website: [linear-screenshots.dev](https://linear-screenshots.dev) (or see the local landing page in [`website/`](./website))
+> Website: [linear.tickets](https://www.linear.tickets/) (or see the local landing page in [`website/`](./website))
 
 ## Features
 

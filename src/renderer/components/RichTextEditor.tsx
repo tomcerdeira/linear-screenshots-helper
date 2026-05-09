@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 // eslint-disable-next-line import/no-unresolved
 import { BubbleMenu } from '@tiptap/react/menus';
@@ -9,7 +9,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
 import {
   Bold, Italic, Strikethrough, Underline as UnderlineIcon,
-  Link as LinkIcon, Quote, Code, List, ListOrdered, Heading2, X,
+  Link as LinkIcon, Quote, Code, List, ListOrdered, Heading2, X, Check, Trash2,
 } from 'lucide-react';
 
 type TurndownInstance = { turndown: (html: string) => string };
@@ -30,6 +30,10 @@ interface RichTextEditorProps {
   readonly placeholder?: string;
 }
 
+export interface RichTextEditorHandle {
+  focus(): void;
+}
+
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -39,8 +43,12 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-export function RichTextEditor({ onChange, placeholder = 'Add description...' }: RichTextEditorProps) {
+export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor(
+  { onChange, placeholder = 'Add description...' },
+  ref,
+) {
   const latestCallIdRef = useRef(0);
+  const [linkUrl, setLinkUrl] = useState<string | null>(null);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -128,16 +136,31 @@ export function RichTextEditor({ onChange, placeholder = 'Add description...' }:
     },
   });
 
-  const setLink = useCallback(() => {
+  const openLinkInput = useCallback(() => {
     if (!editor) return;
-    const prev = editor.getAttributes('link').href;
-    const url = window.prompt('URL', prev ?? 'https://');
-    if (url === null) return;
-    if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run();
-    } else {
-      editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-    }
+    const prev = editor.getAttributes('link').href as string | undefined;
+    setLinkUrl(prev ?? '');
+  }, [editor]);
+
+  const applyLink = useCallback(
+    (url: string) => {
+      if (!editor) return;
+      const trimmed = url.trim();
+      if (trimmed === '') {
+        editor.chain().focus().extendMarkRange('link').unsetLink().run();
+      } else {
+        const href = /^[a-z][a-z0-9+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`;
+        editor.chain().focus().extendMarkRange('link').setLink({ href }).run();
+      }
+      setLinkUrl(null);
+    },
+    [editor],
+  );
+
+  const removeLink = useCallback(() => {
+    if (!editor) return;
+    editor.chain().focus().extendMarkRange('link').unsetLink().run();
+    setLinkUrl(null);
   }, [editor]);
 
   const clearFormatting = useCallback(() => {
@@ -145,12 +168,31 @@ export function RichTextEditor({ onChange, placeholder = 'Add description...' }:
     editor.chain().focus().clearNodes().unsetAllMarks().run();
   }, [editor]);
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus() {
+        editor?.commands.focus('end');
+      },
+    }),
+    [editor],
+  );
+
   if (!editor) return null;
 
   return (
     <div className="flex flex-col flex-1">
       {editor && (
         <BubbleMenu editor={editor}>
+          {linkUrl !== null ? (
+            <LinkInput
+              initial={linkUrl}
+              hasLink={editor.isActive('link')}
+              onSubmit={applyLink}
+              onRemove={removeLink}
+              onCancel={() => setLinkUrl(null)}
+            />
+          ) : (
           <div className="flex items-center gap-0.5 bg-surface-raised border border-border-subtle rounded-lg px-1 py-0.5 shadow-xl shadow-black/50">
             <BubbleBtn
               onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
@@ -188,7 +230,7 @@ export function RichTextEditor({ onChange, placeholder = 'Add description...' }:
               <UnderlineIcon className="w-4 h-4" />
             </BubbleBtn>
             <BubbleDivider />
-            <BubbleBtn onClick={setLink} active={editor.isActive('link')} title="Link">
+            <BubbleBtn onClick={openLinkInput} active={editor.isActive('link')} title="Link">
               <LinkIcon className="w-4 h-4" />
             </BubbleBtn>
             <BubbleBtn
@@ -224,13 +266,14 @@ export function RichTextEditor({ onChange, placeholder = 'Add description...' }:
               <ListOrdered className="w-4 h-4" />
             </BubbleBtn>
           </div>
+          )}
         </BubbleMenu>
       )}
 
       <EditorContent editor={editor} className="flex-1 overflow-y-auto" />
     </div>
   );
-}
+});
 
 function BubbleBtn({
   onClick,
@@ -261,4 +304,77 @@ function BubbleBtn({
 
 function BubbleDivider() {
   return <div className="w-px h-4 bg-border-subtle mx-0.5" />;
+}
+
+function LinkInput({
+  initial,
+  hasLink,
+  onSubmit,
+  onRemove,
+  onCancel,
+}: {
+  readonly initial: string;
+  readonly hasLink: boolean;
+  readonly onSubmit: (url: string) => void;
+  readonly onRemove: () => void;
+  readonly onCancel: () => void;
+}) {
+  const [value, setValue] = useState(initial || 'https://');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  return (
+    <div className="flex items-center gap-1 bg-surface-raised border border-border-subtle rounded-lg px-1.5 py-1 shadow-xl shadow-black/50">
+      <input
+        ref={inputRef}
+        type="url"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            onSubmit(value);
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            onCancel();
+          }
+        }}
+        placeholder="https://..."
+        className="bg-transparent text-[13px] text-content placeholder-content-ghost focus:outline-none w-56 px-1"
+      />
+      <button
+        type="button"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => onSubmit(value)}
+        title="Apply"
+        className="p-1.5 rounded text-content-muted hover:text-content hover:bg-surface-hover transition-colors"
+      >
+        <Check className="w-4 h-4" />
+      </button>
+      {hasLink && (
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={onRemove}
+          title="Remove link"
+          className="p-1.5 rounded text-content-muted hover:text-feedback-error hover:bg-surface-hover transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
+      <button
+        type="button"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={onCancel}
+        title="Cancel"
+        className="p-1.5 rounded text-content-muted hover:text-content hover:bg-surface-hover transition-colors"
+      >
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  );
 }

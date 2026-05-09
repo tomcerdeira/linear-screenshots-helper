@@ -92,6 +92,7 @@ export function App() {
             <ViewWrapper k="existing">
               <ExistingTicketSearch
                 screenshotDataUrl={primaryScreenshot.dataUrl}
+                additionalScreenshots={allDataUrls.slice(1)}
                 onBack={() => setView('create')}
               />
             </ViewWrapper>

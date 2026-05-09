@@ -128,6 +128,16 @@ export async function searchIssues(query: string): Promise<LinearIssueResult[]> 
   return results.nodes.map(toIssueResult);
 }
 
+export function getIssueTeamId(issueId: string): Promise<string> {
+  return cached(`issueTeam:${issueId}`, async () => {
+    const client = getLinearClient();
+    const issue = await client.issue(issueId);
+    const team = await issue.team;
+    if (!team) throw new Error('Issue has no team');
+    return team.id;
+  });
+}
+
 async function uploadInlineImages(markdown: string): Promise<string> {
   const dataUrlPattern = /!\[([^\]]*)\]\((data:image\/[^)]+)\)/g;
   const matches = [...markdown.matchAll(dataUrlPattern)];
@@ -176,6 +186,7 @@ export async function createIssue(input: CreateIssueInput): Promise<LinearIssueR
     ...(input.priority !== undefined ? { priority: input.priority } : {}),
     ...(input.assigneeId ? { assigneeId: input.assigneeId } : {}),
     ...(input.labelIds?.length ? { labelIds: input.labelIds } : {}),
+    ...(input.parentId ? { parentId: input.parentId } : {}),
   });
 
   if (!result.success) {

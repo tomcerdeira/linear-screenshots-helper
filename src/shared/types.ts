@@ -49,6 +49,7 @@ export interface LinearIssueResult {
   readonly identifier: string;
   readonly title: string;
   readonly url: string;
+  readonly teamId?: string;
 }
 
 export interface IpcResult<T = unknown> {
@@ -68,6 +69,7 @@ export interface CreateIssueInput {
   readonly description: string;
   readonly screenshotDataUrl: string;
   readonly additionalScreenshotDataUrls?: string[];
+  readonly parentId?: string;
 }
 
 export interface AddCommentInput {

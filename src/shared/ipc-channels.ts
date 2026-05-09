@@ -9,6 +9,7 @@ export const IPC = {
   GET_MEMBERS: 'linear:getMembers',
   SEARCH_ISSUES: 'linear:searchIssues',
   GET_RECENT_ISSUES: 'linear:getRecentIssues',
+  GET_ISSUE_TEAM_ID: 'linear:getIssueTeamId',
   CREATE_ISSUE: 'linear:createIssue',
   ADD_COMMENT: 'linear:addComment',
   GET_API_KEY: 'store:getApiKey',

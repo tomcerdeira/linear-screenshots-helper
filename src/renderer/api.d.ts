@@ -10,6 +10,7 @@ interface ElectronApi {
   getMembers(teamId: string): Promise<IpcResult<LinearUser[]>>;
   searchIssues(query: string): Promise<IpcResult<LinearIssueResult[]>>;
   getRecentIssues(): Promise<IpcResult<LinearIssueResult[]>>;
+  getIssueTeamId(issueId: string): Promise<IpcResult<string>>;
   createIssue(input: CreateIssueInput): Promise<IpcResult<LinearIssueResult>>;
   addComment(input: AddCommentInput): Promise<IpcResult<{ success: boolean }>>;
   getApiKey(): Promise<IpcResult<string>>;

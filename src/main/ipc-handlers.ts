@@ -3,7 +3,7 @@ import { IPC } from '../shared/ipc-channels';
 import type { IpcResult, LinearIssueResult, CreateIssueInput, AddCommentInput, ScreenshotData, RecentSelections, UpdateState } from '../shared/types';
 import { getApiKey, setApiKey, getEnabled, setEnabled, getHotkey, setHotkey, getCollectHotkey, setCollectHotkey, getOpenQueueHotkey, setOpenQueueHotkey, getRecentSelections, saveLastTeam, saveLastProject, saveRecentTicket, getOnboardingComplete, setOnboardingComplete, getAutoCheckForUpdates, setAutoCheckForUpdates } from '../services/store';
 import { resetClient } from '../services/linear-client';
-import { getTeams, getProjects, getWorkflowStates, getLabels, getMembers, searchIssues, getRecentIssues, createIssue, addCommentWithScreenshot } from '../services/linear-issues';
+import { getTeams, getProjects, getWorkflowStates, getLabels, getMembers, searchIssues, getRecentIssues, createIssue, addCommentWithScreenshot, getIssueTeamId } from '../services/linear-issues';
 import { buildToastHtml } from './templates/toast';
 import { checkForUpdates, getUpdateState, startUpdateInstall } from './updater';
 
@@ -64,6 +64,7 @@ export function registerIpcHandlers(callbacks?: { onHotkeyChanged?: (hotkey: str
   ipcMain.handle(IPC.GET_MEMBERS, (_e, teamId: string) => wrapAsync(() => getMembers(teamId)));
   ipcMain.handle(IPC.SEARCH_ISSUES, (_e, query: string) => wrapAsync(() => searchIssues(query)));
   ipcMain.handle(IPC.GET_RECENT_ISSUES, () => wrapAsync(() => getRecentIssues()));
+  ipcMain.handle(IPC.GET_ISSUE_TEAM_ID, (_e, issueId: string) => wrapAsync(() => getIssueTeamId(issueId)));
   ipcMain.handle(IPC.CREATE_ISSUE, (_e, input: CreateIssueInput) => wrapAsync(() => createIssue(input)));
 
   ipcMain.handle(IPC.ADD_COMMENT, (_e, input: AddCommentInput) =>
