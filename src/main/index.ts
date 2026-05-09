@@ -244,27 +244,35 @@ app.on('ready', () => {
   }
 });
 
+const UPDATE_CHECK_STARTUP_DELAY_MS = 7_000;
+const UPDATE_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
+
+function runScheduledUpdateCheck(): void {
+  if (getAutoCheckForUpdates()) {
+    runNativeUpdateCheck({ automatic: true }).catch(() => {
+      // Background checks should never interrupt capture flow.
+    });
+    return;
+  }
+
+  fetchLatestUpdateInfo().then((info) => {
+    if (!info.hasUpdate || getLastPromptedUpdateVersion() === info.latestVersion) return;
+    setLastPromptedUpdateVersion(info.latestVersion);
+    showToastWindow(
+      'Update available',
+      `v${info.latestVersion} is available — open Settings to install`,
+      '',
+    );
+  }).catch(() => {
+    // Non-blocking disabled-auto prompt; ignore transient network failures.
+  });
+}
+
 function scheduleUpdateCheck(): void {
   setTimeout(() => {
-    if (getAutoCheckForUpdates()) {
-      runNativeUpdateCheck({ automatic: true }).catch(() => {
-        // Startup checks should never interrupt capture flow.
-      });
-      return;
-    }
-
-    fetchLatestUpdateInfo().then((info) => {
-      if (!info.hasUpdate || getLastPromptedUpdateVersion() === info.latestVersion) return;
-      setLastPromptedUpdateVersion(info.latestVersion);
-      showToastWindow(
-        'Update available',
-        `v${info.latestVersion} is available — open Settings to install`,
-        '',
-      );
-    }).catch(() => {
-      // Non-blocking disabled-auto prompt; ignore transient network failures.
-    });
-  }, 7000);
+    runScheduledUpdateCheck();
+    setInterval(runScheduledUpdateCheck, UPDATE_CHECK_INTERVAL_MS);
+  }, UPDATE_CHECK_STARTUP_DELAY_MS);
 }
 
 function prefetchData(): void {
