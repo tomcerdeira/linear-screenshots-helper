@@ -161,7 +161,7 @@ export function HomeClient() {
     <main className="relative h-dvh w-full overflow-hidden">
       <MobileNotice />
 
-      <div className="hidden sm:flex h-full w-full flex-col items-center justify-start px-6 pt-[8vh] sm:pt-[10vh]">
+      <div className="hidden sm:flex h-full w-full flex-col items-center justify-center px-6">
         <Hero />
         <HotkeyHint pressedKeys={pressedKeys} onActivate={startSelection} />
 

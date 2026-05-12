@@ -13,7 +13,7 @@ export default function AppleIcon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #1a1a2e 0%, #0a0a0f 100%)",
+          background: "linear-gradient(135deg, #2a2a2a 0%, #111111 55%, #000000 100%)",
           borderRadius: "36px",
         }}
       >
@@ -24,7 +24,7 @@ export default function AppleIcon() {
           fill="none"
         >
           <path
-            fill="#5E6AD2"
+            fill="#E5E5E5"
             d="M640 832H64V640a128 128 0 1 0 0-256V192h576v160h64V192h256v192a128 128 0 1 0 0 256v192H704V672h-64v160zm0-416v192h64V416h-64z"
           />
         </svg>

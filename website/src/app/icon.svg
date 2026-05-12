@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1a1a2e"/>
-      <stop offset="50%" stop-color="#16213e"/>
-      <stop offset="100%" stop-color="#0a0a0f"/>
+      <stop offset="0%" stop-color="#2a2a2a"/>
+      <stop offset="55%" stop-color="#111111"/>
+      <stop offset="100%" stop-color="#000000"/>
     </linearGradient>
     <clipPath id="rounded">
       <rect width="1024" height="1024" rx="205" ry="205"/>
@@ -12,7 +12,7 @@
   <g clip-path="url(#rounded)">
     <rect width="1024" height="1024" fill="url(#bg)"/>
     <g transform="translate(170 170) scale(0.668)">
-      <path fill="#5E6AD2" d="M640 832H64V640a128 128 0 1 0 0-256V192h576v160h64V192h256v192a128 128 0 1 0 0 256v192H704V672h-64v160zm0-416v192h64V416h-64z"/>
+      <path fill="#E5E5E5" d="M640 832H64V640a128 128 0 1 0 0-256V192h576v160h64V192h256v192a128 128 0 1 0 0 256v192H704V672h-64v160zm0-416v192h64V416h-64z"/>
     </g>
   </g>
 </svg>
