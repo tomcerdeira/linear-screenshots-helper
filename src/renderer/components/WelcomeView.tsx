@@ -57,10 +57,13 @@ function StepWelcome({ onNext }: { readonly onNext: () => void }) {
         <motion.div
           variants={fadeUp}
           custom={0}
-          className="w-[72px] h-[72px] rounded-[20px] bg-gradient-to-br from-linear-brand to-[#4850b8] flex items-center justify-center shadow-xl shadow-linear-brand/25"
+          className="w-[72px] h-[72px] rounded-[20px] flex items-center justify-center shadow-xl shadow-black/40"
+          style={{
+            background: 'linear-gradient(135deg, #2a2a2a 0%, #111111 55%, #000000 100%)',
+          }}
         >
           <svg width="38" height="38" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-            <path fill="#ffffff" d="M640 832H64V640a128 128 0 1 0 0-256V192h576v160h64V192h256v192a128 128 0 1 0 0 256v192H704V672h-64v160zm0-416v192h64V416h-64z"/>
+            <path fill="#E5E5E5" d="M640 832H64V640a128 128 0 1 0 0-256V192h576v160h64V192h256v192a128 128 0 1 0 0 256v192H704V672h-64v160zm0-416v192h64V416h-64z"/>
           </svg>
         </motion.div>
 
