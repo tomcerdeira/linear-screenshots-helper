@@ -5,6 +5,13 @@ import { MotionProvider } from "@/components/MotionProvider";
 import { SITE_URL } from "@/lib/links";
 import "./globals.css";
 
+const sharedLinkPreview = {
+  url: "/shared_link_preview.png",
+  width: 1024,
+  height: 649,
+  alt: "Tickets at lightening speed",
+};
+
 const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
@@ -20,7 +27,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Linear Screenshot — Capture and Create Linear Tickets Instantly",
+    default: "Tickets at lightening speed",
     template: "%s | Linear Screenshot",
   },
   description:
@@ -40,19 +47,21 @@ export const metadata: Metadata = {
   authors: [{ name: "Tom Cerdeira" }],
   creator: "Tom Cerdeira",
   openGraph: {
-    title: "Linear Screenshot",
+    title: "Tickets at lightening speed",
     description:
       "Capture screenshots and create Linear tickets instantly from your menu bar.",
     url: SITE_URL,
     siteName: "Linear Screenshot",
+    images: [sharedLinkPreview],
     locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Linear Screenshot",
+    title: "Tickets at lightening speed",
     description:
       "Capture screenshots and create Linear tickets instantly from your menu bar.",
+    images: [sharedLinkPreview],
   },
   alternates: {
     canonical: SITE_URL,

@@ -44,7 +44,7 @@ export function Hero() {
         custom={1}
         className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]"
       >
-        Screenshots to <span className="text-primary">Linear tickets</span> in seconds
+        Tickets at <span className="text-primary">lightening</span> speed
       </m.h1>
 
       <m.p

@@ -2,15 +2,30 @@ import type { Metadata } from "next";
 import { HomeClient } from "@/components/HomeClient";
 import { SITE_URL, REPO_URL, DMG_DOWNLOAD_URL } from "@/lib/links";
 
+const sharedLinkPreview = {
+  url: "/shared_link_preview.png",
+  width: 1024,
+  height: 649,
+  alt: "Tickets at lightening speed",
+};
+
 export const metadata: Metadata = {
-  title: "Linear Screenshot — Capture and Create Linear Tickets Instantly",
+  title: "Tickets at lightening speed",
   description:
     "A lightweight macOS menu bar app that captures any region of your screen and creates Linear issues in seconds, without leaving your flow.",
   openGraph: {
-    title: "Linear Screenshot",
+    title: "Tickets at lightening speed",
     description:
       "Capture screenshots and create Linear tickets instantly from your menu bar.",
+    images: [sharedLinkPreview],
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Tickets at lightening speed",
+    description:
+      "Capture screenshots and create Linear tickets instantly from your menu bar.",
+    images: [sharedLinkPreview],
   },
 };
 
