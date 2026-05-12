@@ -4,8 +4,8 @@ import { SITE_URL, REPO_URL, DMG_DOWNLOAD_URL } from "@/lib/links";
 
 const sharedLinkPreview = {
   url: "/shared_link_preview.png",
-  width: 1024,
-  height: 649,
+  width: 1200,
+  height: 630,
   alt: "Tickets at lightening speed",
 };
 

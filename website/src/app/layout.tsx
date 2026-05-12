@@ -7,8 +7,8 @@ import "./globals.css";
 
 const sharedLinkPreview = {
   url: "/shared_link_preview.png",
-  width: 1024,
-  height: 649,
+  width: 1200,
+  height: 630,
   alt: "Tickets at lightening speed",
 };
 
