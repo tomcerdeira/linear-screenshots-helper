@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
-import { m, type Variants } from "framer-motion";
-import type { Scenario } from "./PopupPreview";
 import { DMG_ARM64_URL, DMG_X64_URL } from "@/lib/links";
+import { m, type Variants } from "framer-motion";
+import Image from "next/image";
+import type { Scenario } from "./PopupPreview";
 
 function hashIssueNumber(title: string): number {
   let hash = 0;
@@ -197,7 +197,7 @@ export function DownloadConfirm({
         <p className="text-[11px] text-center text-muted-foreground">
           Apple Silicon · {" "}
           <a href={DMG_X64_URL} download className="underline hover:text-foreground transition-colors">
-            Intel Mac?
+            Intel Mac
           </a>
         </p>
         <button
