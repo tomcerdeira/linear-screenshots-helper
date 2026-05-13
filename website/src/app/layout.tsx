@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { MotionProvider } from "@/components/MotionProvider";
 import { SITE_URL } from "@/lib/links";
@@ -83,6 +84,7 @@ export default function RootLayout({
           <AnimatedBackground />
           {children}
         </MotionProvider>
+        <Analytics />
       </body>
     </html>
   );
