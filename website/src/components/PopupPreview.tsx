@@ -159,14 +159,6 @@ function LabelDot({ color }: { color: string }) {
   );
 }
 
-function UserIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="size-3.5">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-    </svg>
-  );
-}
-
 function ProjectIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="size-3.5">
@@ -481,8 +473,14 @@ export function PopupPreview({
             </span>
           </Pill>
           <Pill shortcut="A">
-            <UserIcon />
-            <span>No assignee</span>
+            <Image
+              src="/86ca898605bdbcbe47f5a8e04a088baf3d91d072eaae8aa36bd224993f0862f8.webp"
+              alt="Karri Saarinen"
+              width={14}
+              height={14}
+              className="size-3.5 rounded-full object-cover"
+            />
+            <span style={{ color: COLORS.content }}>Karri Saarinen</span>
           </Pill>
           {scenario.project && (
             <Pill>

@@ -44,7 +44,7 @@ export function HotkeyHint({
   onActivate: () => void;
 }) {
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 bottom-[14vh] sm:bottom-[16vh] z-10 flex flex-col items-center">
+    <div className="relative z-10 flex flex-col items-center mt-[10vh]">
       <m.button
         type="button"
         onClick={onActivate}
