@@ -1,7 +1,7 @@
 {
   "name": "linear-screenshots-helper",
   "productName": "Linear Screenshot",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "Capture screenshots and create Linear tickets instantly from your menu bar",
   "main": ".vite/build/index.js",
   "scripts": {

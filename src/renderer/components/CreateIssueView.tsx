@@ -32,13 +32,28 @@ interface CreateIssueViewProps {
   readonly onSwitchToExisting: () => void;
   readonly parentIssue?: LinearIssueResult;
   readonly forcedTeamId?: string;
+  readonly initialTitle?: string;
+  readonly initialDescription?: string;
+  readonly initialDescriptionHTML?: string;
+  readonly onDraftChange?: (draft: { title: string; description: string; descriptionHTML: string }) => void;
 }
 
 function SkeletonPill() {
   return <span className="skeleton-pill inline-block w-[72px] h-[26px] rounded-full" />;
 }
 
-export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onClose, onSwitchToExisting, parentIssue, forcedTeamId }: CreateIssueViewProps) {
+export function CreateIssueView({
+  screenshotDataUrl,
+  additionalScreenshots,
+  onClose,
+  onSwitchToExisting,
+  parentIssue,
+  forcedTeamId,
+  initialTitle,
+  initialDescription,
+  initialDescriptionHTML,
+  onDraftChange,
+}: CreateIssueViewProps) {
   const isSubIssue = Boolean(parentIssue);
   const { lastTeamId, lastProjectId, loading: loadingRecent } = useRecentSelections();
   const [teamId, setTeamId] = useState('');
@@ -47,10 +62,40 @@ export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onCl
   const [priority, setPriority] = useState('0');
   const [assigneeId, setAssigneeId] = useState('');
   const [labelIds, setLabelIds] = useState<string[]>([]);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [title, setTitle] = useState(initialTitle ?? '');
+  const [description, setDescription] = useState(initialDescription ?? '');
+  const descriptionHTMLRef = React.useRef(initialDescriptionHTML ?? '');
+  const onDraftChangeRef = React.useRef(onDraftChange);
+  onDraftChangeRef.current = onDraftChange;
   const formRef = React.useRef({ teamId, projectId, stateId, priority, assigneeId, labelIds, title, description });
   formRef.current = { teamId, projectId, stateId, priority, assigneeId, labelIds, title, description };
+
+  const handleTitleChange = useCallback((value: string) => {
+    setTitle(value);
+    onDraftChangeRef.current?.({
+      title: value,
+      description: formRef.current.description,
+      descriptionHTML: descriptionHTMLRef.current,
+    });
+  }, []);
+
+  const handleDescriptionChange = useCallback((markdown: string) => {
+    setDescription(markdown);
+    onDraftChangeRef.current?.({
+      title: formRef.current.title,
+      description: markdown,
+      descriptionHTML: descriptionHTMLRef.current,
+    });
+  }, []);
+
+  const handleDescriptionHTMLChange = useCallback((html: string) => {
+    descriptionHTMLRef.current = html;
+    onDraftChangeRef.current?.({
+      title: formRef.current.title,
+      description: formRef.current.description,
+      descriptionHTML: html,
+    });
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [showScreenshot, setShowScreenshot] = useState(true);
@@ -202,16 +247,14 @@ export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onCl
           )}
         </div>
         <div className="no-drag flex items-center gap-1">
-          {!isSubIssue && (
-            <button
-              type="button"
-              onClick={onSwitchToExisting}
-              className="px-2 py-1 text-[11px] text-content-ghost hover:text-content hover:bg-surface-input rounded transition-colors flex items-center gap-1"
-            >
-              Attach to existing
-              <kbd className="inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded bg-surface-input border border-border-subtle text-[9px] font-medium text-content-muted leading-none uppercase">E</kbd>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onSwitchToExisting}
+            className="px-2 py-1 text-[11px] text-content-ghost hover:text-content hover:bg-surface-input rounded transition-colors flex items-center gap-1"
+          >
+            {isSubIssue ? 'Attach as comment' : 'Attach to existing'}
+            <kbd className="inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded bg-surface-input border border-border-subtle text-[9px] font-medium text-content-muted leading-none uppercase">E</kbd>
+          </button>
           <button
             type="button"
             onClick={onClose}
@@ -234,7 +277,7 @@ export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onCl
         <input
           type="text"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => handleTitleChange(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
               e.preventDefault();
@@ -247,7 +290,12 @@ export function CreateIssueView({ screenshotDataUrl, additionalScreenshots, onCl
         />
 
         <Suspense fallback={<EditorFallback />}>
-          <RichTextEditor ref={editorRef} onChange={setDescription} />
+          <RichTextEditor
+            ref={editorRef}
+            onChange={handleDescriptionChange}
+            onHTMLChange={handleDescriptionHTMLChange}
+            initialContent={initialDescriptionHTML}
+          />
         </Suspense>
 
         {(() => {

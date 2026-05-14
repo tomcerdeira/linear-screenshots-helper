@@ -27,7 +27,9 @@ function getTurndown(): Promise<TurndownInstance> {
 
 interface RichTextEditorProps {
   readonly onChange: (markdown: string) => void;
+  readonly onHTMLChange?: (html: string) => void;
   readonly placeholder?: string;
+  readonly initialContent?: string;
 }
 
 export interface RichTextEditorHandle {
@@ -44,12 +46,13 @@ function fileToDataUrl(file: File): Promise<string> {
 }
 
 export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor(
-  { onChange, placeholder = 'Add description...' },
+  { onChange, onHTMLChange, placeholder = 'Add description...', initialContent },
   ref,
 ) {
   const latestCallIdRef = useRef(0);
   const [linkUrl, setLinkUrl] = useState<string | null>(null);
   const editor = useEditor({
+    content: initialContent,
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
@@ -124,6 +127,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     },
     onUpdate: ({ editor: e }) => {
       const html = e.getHTML();
+      onHTMLChange?.(html);
       if (html === '<p></p>') {
         onChange('');
         return;

@@ -39,6 +39,18 @@ export function App() {
   const [queuedScreenshots, setQueuedScreenshots] = useState<ScreenshotData[]>([]);
   const [isQueueMode, setIsQueueMode] = useState(false);
   const [showWelcome, setShowWelcome] = useState<boolean | null>(null);
+  const [draftTitle, setDraftTitle] = useState('');
+  const [draftDescription, setDraftDescription] = useState('');
+  const [draftDescriptionHTML, setDraftDescriptionHTML] = useState('');
+
+  const handleDraftChange = React.useCallback(
+    (draft: { title: string; description: string; descriptionHTML: string }) => {
+      setDraftTitle(draft.title);
+      setDraftDescription(draft.description);
+      setDraftDescriptionHTML(draft.descriptionHTML);
+    },
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -85,6 +97,10 @@ export function App() {
                 additionalScreenshots={allDataUrls.slice(1)}
                 onClose={handleClose}
                 onSwitchToExisting={() => setView('existing')}
+                initialTitle={draftTitle}
+                initialDescription={draftDescription}
+                initialDescriptionHTML={draftDescriptionHTML}
+                onDraftChange={handleDraftChange}
               />
             </ViewWrapper>
           )}
@@ -94,6 +110,10 @@ export function App() {
                 screenshotDataUrl={primaryScreenshot.dataUrl}
                 additionalScreenshots={allDataUrls.slice(1)}
                 onBack={() => setView('create')}
+                draftTitle={draftTitle}
+                draftDescription={draftDescription}
+                draftDescriptionHTML={draftDescriptionHTML}
+                onDraftChange={handleDraftChange}
               />
             </ViewWrapper>
           )}
@@ -139,6 +159,10 @@ export function App() {
               screenshotDataUrl={screenshot.dataUrl}
               onClose={handleClose}
               onSwitchToExisting={() => setView('existing')}
+              initialTitle={draftTitle}
+              initialDescription={draftDescription}
+              initialDescriptionHTML={draftDescriptionHTML}
+              onDraftChange={handleDraftChange}
             />
           </ViewWrapper>
         )}
@@ -147,6 +171,10 @@ export function App() {
             <ExistingTicketSearch
               screenshotDataUrl={screenshot.dataUrl}
               onBack={() => setView('create')}
+              draftTitle={draftTitle}
+              draftDescription={draftDescription}
+              draftDescriptionHTML={draftDescriptionHTML}
+              onDraftChange={handleDraftChange}
             />
           </ViewWrapper>
         )}

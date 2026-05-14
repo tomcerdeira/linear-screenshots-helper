@@ -15,6 +15,10 @@ interface ExistingTicketSearchProps {
   readonly additionalScreenshots?: string[];
   readonly onBack: () => void;
   readonly preselectedIssue?: LinearIssueResult | null;
+  readonly draftTitle?: string;
+  readonly draftDescription?: string;
+  readonly draftDescriptionHTML?: string;
+  readonly onDraftChange?: (draft: { title: string; description: string; descriptionHTML: string }) => void;
 }
 
 const IssueList = React.memo(function IssueList({
@@ -66,11 +70,20 @@ function IssueListSkeleton({ rows = 3 }: { readonly rows?: number }) {
   );
 }
 
-export function ExistingTicketSearch({ screenshotDataUrl, additionalScreenshots, onBack, preselectedIssue }: ExistingTicketSearchProps) {
+export function ExistingTicketSearch({
+  screenshotDataUrl,
+  additionalScreenshots,
+  onBack,
+  preselectedIssue,
+  draftTitle,
+  draftDescription,
+  draftDescriptionHTML,
+  onDraftChange,
+}: ExistingTicketSearchProps) {
   const [query, setQuery] = useState('');
   const [comment, setComment] = useState('');
   const [selectedIssue, setSelectedIssue] = useState<LinearIssueResult | null>(preselectedIssue ?? null);
-  const [mode, setMode] = useState<AttachMode>('comment');
+  const [mode, setMode] = useState<AttachMode>('subIssue');
   const [parentTeamId, setParentTeamId] = useState<string | null>(null);
   const [parentTeamError, setParentTeamError] = useState<string | null>(null);
 
@@ -119,14 +132,14 @@ export function ExistingTicketSearch({ screenshotDataUrl, additionalScreenshots,
 
   function handleSelectIssue(issue: LinearIssueResult) {
     setSelectedIssue(issue);
-    setMode('comment');
+    setMode('subIssue');
     setParentTeamId(null);
     setParentTeamError(null);
   }
 
   function handleChangeIssue() {
     setSelectedIssue(null);
-    setMode('comment');
+    setMode('subIssue');
     setParentTeamId(null);
     setParentTeamError(null);
   }
@@ -176,6 +189,10 @@ export function ExistingTicketSearch({ screenshotDataUrl, additionalScreenshots,
         onSwitchToExisting={() => setMode('comment')}
         parentIssue={selectedIssue}
         forcedTeamId={parentTeamId}
+        initialTitle={draftTitle}
+        initialDescription={draftDescription}
+        initialDescriptionHTML={draftDescriptionHTML}
+        onDraftChange={onDraftChange}
       />
     );
   }
